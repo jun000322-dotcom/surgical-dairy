@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>수술실 생존일기</title>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--text:#1d2433;--sub:#6b7488;--main:#4f46e5;--line:#e3e7f0;--ok:#16a34a;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12151c;--card:#1c212d;--text:#e8ebf3;--sub:#9aa3b8;--main:#818cf8;--line:#2b3244;color-scheme:dark}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;line-height:1.5}
+main{max-width:520px;margin:0 auto;padding:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+h1{font-size:20px;margin:6px 0 12px}h2{font-size:15px;margin:0 0 10px}
+.hero{display:flex;gap:12px;align-items:center}
+.lv{width:64px;height:64px;border-radius:50%;background:var(--main);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;flex:none}
+.lv small{font-size:10px;font-weight:400}.lv b{font-size:22px;line-height:1}
+.bar{height:10px;background:var(--line);border-radius:6px;overflow:hidden;margin:6px 0 2px}
+.bar i{display:block;height:100%;background:var(--main);width:0;transition:width .5s}
+.sub{color:var(--sub);font-size:12px}
+label{display:block;font-size:13px;margin:10px 0 4px}
+input,select,textarea,button{width:100%;font:inherit;padding:9px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text)}
+button{background:var(--main);color:#fff;border:0;font-weight:700;margin-top:14px}
+.row{display:flex;gap:8px}.row>*{flex:1;min-width:0}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.stats b{font-size:20px;display:block}
+.item{border-top:1px solid var(--line);padding:10px 0;font-size:14px}
+.item:first-child{border-top:0}
+.tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:8px;background:var(--line);margin-right:4px}
+.del,.ed{width:auto;padding:2px 8px;margin:0;font-size:11px;background:none;color:var(--sub);border:1px solid var(--line);float:right}
+#fb li{margin-bottom:6px}
+#addType,#addSub,#addDept,#addDoc{margin-top:0;width:auto;flex:none;padding:9px 16px}
+#newDept,#subDept{width:auto;flex:none}
+.dsel,.ssel{width:auto;padding:2px 4px;font-size:12px;margin:4px 6px 0 0}
+.x{cursor:pointer;margin-left:4px;padding:4px 6px;color:var(--sub)}
+.dgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.dbtn{margin:0;padding:10px 4px;background:var(--bg);color:var(--text);border:1px solid var(--line);font-size:14px}
+.dbtn.on{background:var(--main);color:#fff;border-color:var(--main)}
+.dbtn span{font-size:11px;opacity:.7}
+.sbtn,.srt{width:auto;margin:0 6px 6px 0;padding:4px 10px;font-size:12px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:14px}
+.sbtn.on,.srt.on{background:var(--main);color:#fff;border-color:var(--main)}
+.grip{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;margin-right:6px;padding:4px 6px 4px 0;font-size:16px;color:var(--sub)}
+.item.drag{opacity:.45}
+.item.over{outline:2px dashed var(--main);outline-offset:-2px}
+.ngrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px}
+.nbtn{margin:0;padding:8px 8px;background:var(--bg);color:var(--text);border:1px solid var(--line);font-size:13px;text-align:left}
+.nbtn.on{background:var(--main);color:#fff;border-color:var(--main)}
+.nbtn span{font-size:11px;opacity:.7}
+.dcard{border:1px solid var(--line);border-radius:12px;padding:10px;margin-top:8px}
+.dtitle{font-weight:700;margin-bottom:4px}
+.dhead{cursor:pointer}
+.memo{display:flex;gap:8px;align-items:flex-start;border-top:1px solid var(--line);padding-top:8px;margin-top:8px;font-size:14px}
+.mt{flex:1;white-space:pre-wrap;word-break:break-word}
+.memo .ed{float:none;flex:none;margin:0}
+.pref{display:flex;gap:8px;align-items:flex-start;background:var(--bg);border-radius:10px;padding:8px 10px;margin-top:8px;font-size:14px}
+.pref>div{flex:1}
+.pt{font-weight:700;font-size:12px;color:var(--main);margin-bottom:2px}
+.pb{white-space:pre-wrap;word-break:break-word}
+.ct{fill:var(--sub);font-size:9px;text-anchor:middle}
+.cv{fill:var(--text);font-size:10px;text-anchor:middle}
+.donut{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.donut svg{width:120px;height:120px;flex:none}
+.lg{flex:1;min-width:130px;font-size:13px}
+.lg>div{display:flex;gap:6px;align-items:center;margin:3px 0}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cgrid>div{min-width:0}
+.cgrid .donut{flex-direction:column;align-items:stretch;gap:8px}
+.cgrid .donut svg{width:100%;max-width:110px;height:auto;margin:0 auto}
+.cgrid .lg{min-width:0;font-size:12px}
+.pref .ed{float:none;flex:none;margin:0}
+.dh{font-size:13px;font-weight:700;margin:12px 0 2px;color:var(--main)}
+[hidden]{display:none!important}
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tabs>*{flex:1}
+.tabbtn{margin:0;padding:9px 4px;background:var(--card);color:var(--sub);border:1px solid var(--line);font-size:13px}
+.tabbtn.on{background:var(--main);color:#fff;border-color:var(--main)}
+.tabs{overflow-x:auto}
+.tabs>*{flex:1 0 auto}
+.tabbtn{width:auto;white-space:nowrap;padding:9px 10px}
+#askbar{display:none;position:fixed;left:12px;right:12px;bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 4px 20px rgba(0,0,0,.25);z-index:20;font-size:14px}
+#askbar button{margin-top:10px}
+#askNo,#eNo,#pNo{background:var(--sub)}
+#onboard{display:none;position:fixed;inset:0;background:var(--bg);z-index:40;overflow:auto;padding:calc(14px + env(safe-area-inset-top,0px)) 14px calc(14px + env(safe-area-inset-bottom,0px))}
+#editbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:30;overflow:auto;padding:calc(14px + env(safe-area-inset-top,0px)) 14px calc(14px + env(safe-area-inset-bottom,0px))}
+#editbox .panel,#onboard .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;max-width:520px;margin:10px auto}
+.ed{margin-right:6px}
+#toast{z-index:50;position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ok);color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;display:none}
+</style>
+</head>
+<body>
+<main>
+<h1>🏥 수술실 생존일기</h1>
+
+<div class="card hero">
+  <div class="lv"><small>LV</small><b id="lv">1</b></div>
+  <div style="flex:1">
+    <div id="who" style="font-size:13px;color:var(--sub);cursor:pointer"></div>
+    <div id="title" style="font-weight:700"></div>
+    <div class="bar"><i id="xpbar"></i></div>
+    <div class="sub" id="xptext"></div>
+  </div>
+</div>
+
+<div class="card stats">
+  <div><b id="sCount">0</b><span class="sub">총 수술</span></div>
+  <div><b id="sTypes">0</b><span class="sub">수술 종류</span></div>
+  <div><b id="sStreak">0</b><span class="sub">연속 기록일</span></div>
+</div>
+
+<div class="card">
+  <h2>🗂️ 내 수술 목록</h2>
+  <div class="dh" style="margin-top:0">과 추가</div>
+  <div class="row" style="margin-bottom:6px"><input id="newDeptName" placeholder="과 추가 (예: VS)"><button id="addDept">과 추가</button></div>
+  <div id="deptChips" style="margin-bottom:10px"></div>
+  <div class="dh" style="margin-top:6px">🏷️ 분과 관리</div>
+  <div class="row"><select id="subDept"></select><input id="newSub" placeholder="분과 추가 (예: 간담췌)"><button id="addSub">추가</button></div>
+  <div id="subToggle" class="dh" style="cursor:pointer;margin:8px 0 4px"></div>
+  <div id="subList" style="margin:0 0 10px" hidden></div>
+  <div class="dh" style="margin-top:6px">수술명 추가</div>
+  <div class="row"><input id="newType" placeholder="수술명 추가 (예: 복강경 담낭절제술)"><select id="newDept"></select><button id="addType">추가</button></div>
+  <div id="typeList" style="margin-top:8px"></div>
+</div>
+
+<div class="card">
+  <h2>🩺 집도의 목록</h2>
+  <div class="row"><select id="docDept"></select><select id="docSub"></select></div>
+  <div class="row" style="margin-top:6px"><input id="newDoc" placeholder="집도의 이름"><button id="addDoc">추가</button></div>
+  <div id="docList" style="margin-top:8px"></div>
+</div>
+
+<div class="card">
+  <h2>📝 오늘의 수술 기록</h2>
+  <p class="sub" style="margin:0">⚠️ 환자 이름·등록번호 등 개인정보는 적지 마세요.</p>
+  <label>날짜</label><input type="date" id="date">
+  <div class="row">
+    <div><label>수술명</label><select id="name"></select><button class="srt" id="newSurg" type="button" style="margin-top:6px">+ 새 수술</button></div>
+    <div><label>수술 방식</label><select id="appr"></select></div>
+  </div>
+  <div class="row">
+    <div><label>집도의</label><select id="doc"></select></div>
+    <div><label>내 역할</label><select id="role"><option>소독간호사</option><option>순회간호사</option></select></div>
+  </div>
+  <div class="row">
+    <div><label>난이도 (1~5)</label><select id="diff"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></div>
+    <div><label>내 만족도 (1~5)</label><select id="self"><option>1</option><option>2</option><option>3</option><option selected>4</option><option>5</option></select></div>
+  </div>
+  <label>메모 · 배운 점 (적으면 보너스 XP!)</label>
+  <textarea id="memo" rows="3" placeholder="잘한 점, 아쉬운 점, 다음에 준비할 것"></textarea>
+  <button id="save">기록하고 XP 얻기</button>
+</div>
+
+<div class="card"><h2>💬 나의 수술 피드백</h2><ul id="fb" style="padding-left:18px;margin:0"></ul></div>
+<div class="card"><h2>📈 통계 차트</h2><div id="chartBox"></div></div>
+
+<div class="card"><h2>📚 수술별 대시보드</h2><div id="list"></div></div>
+<div class="card">
+  <h2>💾 백업 / 복원</h2>
+  <div id="backupBox">
+    <p class="sub" style="margin:0">🔒 백업 파일에는 내 기록이 모두 들어 있어요. 안전한 곳에만 보관해 주세요.</p>
+    <p class="sub" id="bkInfo"></p>
+    <div class="row"><button id="bkSave">백업 파일 저장</button><button id="bkCopy">백업 내용 복사</button></div>
+    <label>복원: 백업 파일 선택</label>
+    <input type="file" id="bkFile" accept=".json,application/json">
+    <label>또는 백업 내용을 아래에 붙여넣기</label>
+    <textarea id="bkText" rows="3" placeholder="복사한 백업 내용"></textarea>
+    <button id="bkRestore">붙여넣은 내용으로 복원</button>
+  </div>
+</div>
+</main>
+<div id="toast"></div>
+<div id="askbar"></div>
+<div id="editbox"></div>
+<div id="onboard"></div>
+
+<script>
+// 1) 저장소: 폰 브라우저에 기록을 보관
+const KEY = "surgeryLog";
+function load(){ try{ return JSON.parse(localStorage.getItem(KEY)) || []; }catch(e){ return []; } }
+function store(d){ try{ localStorage.setItem(KEY, JSON.stringify(d)); }catch(e){} }
+let logs = load();
+
+// 내 수술 목록: 따로 저장. 처음엔 기존 기록의 수술명으로 채움
+const TKEY = "surgeryTypes";
+function loadTypes(){
+  try{ const t = JSON.parse(localStorage.getItem(TKEY)); if (Array.isArray(t)) return t; }catch(e){}
+  return [...new Set(logs.map(l => l.name))];
+}
+function storeTypes(){ try{ localStorage.setItem(TKEY, JSON.stringify(types)); }catch(e){} }
+let types = loadTypes();
+let selDept = null, selSub = "all";
+let sortMode = "count";
+let dashName = null;
+let subOpen = false;
+let openCards = new Set();
+let prefNotes = loadObj("surgeryPrefNotes");
+try{ sortMode = localStorage.getItem("surgerySort") === "manual" ? "manual" : "count"; }catch(e){}
+function setSort(m){ sortMode = m; try{ localStorage.setItem("surgerySort", m); }catch(e){} }
+function countOf(t){ return logs.filter(l => l.name === t).length; }
+
+// 과(진료과) 분류: 수술명 → 과 이름을 따로 저장
+const BASE = ["GS","OS","NS","CS","OB/GY","URO","ENT","PS","OPH"];
+const CKEY = "surgeryCustomDepts";
+let custom = [];
+try{ custom = JSON.parse(localStorage.getItem(CKEY)) || []; }catch(e){}
+function storeCustom(){ try{ localStorage.setItem(CKEY, JSON.stringify(custom)); }catch(e){} }
+let DEPTS = [];
+function buildDepts(){ DEPTS = [...BASE, ...custom, "ETC"]; }
+buildDepts();
+const OLD = {"일반외과":"GS","정형외과":"OS","신경외과":"NS","흉부외과":"CS","산부인과":"OB/GY","비뇨의학과":"URO","이비인후과":"ENT","성형외과":"PS","안과":"OPH","기타":"ETC"};
+const DKEY = "surgeryDepts";
+function loadDepts(){ try{ return JSON.parse(localStorage.getItem(DKEY)) || {}; }catch(e){ return {}; } }
+function storeDepts(){ try{ localStorage.setItem(DKEY, JSON.stringify(deptOf)); }catch(e){} }
+let deptOf = loadDepts();
+function deptFor(name){ const v = OLD[deptOf[name]] || deptOf[name]; return DEPTS.includes(v) ? v : "ETC"; }
+
+// 분과: 과 아래에 내가 직접 만드는 세부 분류
+const SKEY = "surgerySubs", SOKEY = "surgerySubOf";
+function loadObj(k){ try{ return JSON.parse(localStorage.getItem(k)) || {}; }catch(e){ return {}; } }
+let subs = loadObj(SKEY), subOf = loadObj(SOKEY);
+function storeSubs(){ try{ localStorage.setItem(SKEY, JSON.stringify(subs)); localStorage.setItem(SOKEY, JSON.stringify(subOf)); }catch(e){} }
+function subFor(name){ const s = subOf[name]; return (s && (subs[deptFor(name)] || []).includes(s)) ? s : ""; }
+
+// 집도의: {이름, 과, 분과} 목록
+const DOCKEY = "surgerySurgeons";
+function loadDocs(){ try{ const d = JSON.parse(localStorage.getItem(DOCKEY)); if (Array.isArray(d)) return d; }catch(e){} return []; }
+let docs = loadDocs();
+let docSelDept = null, docSelSub = null;
+function docCount(name){ return logs.filter(l => l.doc === name).length; }
+function storeDocs(){ try{ localStorage.setItem(DOCKEY, JSON.stringify(docs)); }catch(e){} }
+function docDept(o){ return DEPTS.includes(o.dept) ? o.dept : "ETC"; }
+function docSub(o){ return (o.sub && (subs[docDept(o)] || []).includes(o.sub)) ? o.sub : ""; }
+
+// 수술 방식 항목
+const APPR = ["복강경", "개복", "로봇", "기타"];
+
+// 2) RPG 규칙: 수술 하나당 얻는 XP
+function calcXP(s, isNewType){
+  let xp = 10 + s.diff * 5;                 // 기본 + 난이도
+  xp += Math.floor((s.min || 0) / 30) * 2;  // 30분마다 +2
+  if (isNewType) xp += 15;                  // 새로운 종류 보너스
+  if (s.memo && s.memo.trim().length >= 10) xp += 5; // 메모 보너스
+  return xp;
+}
+const TITLES = ["신규 견습생","수술실 새싹","든든한 보조","믿음직한 손","수술방 에이스","베테랑","수술실의 전설"];
+function levelOf(xp){ return Math.floor(Math.sqrt(xp / 25)) + 1; }
+function xpFor(level){ return (level - 1) * (level - 1) * 25; }
+
+// 3) 화면 그리기
+const $ = id => document.getElementById(id);
+function streak(){
+  const days = new Set(logs.map(l => l.date));
+  let n = 0, d = new Date();
+  if (!days.has(d.toISOString().slice(0,10))) d.setDate(d.getDate() - 1);
+  while (days.has(d.toISOString().slice(0,10))) { n++; d.setDate(d.getDate() - 1); }
+  return n;
+}
+function feedback(){
+  if (logs.length < 3) return ["기록이 3건 이상 쌓이면 맞춤 피드백이 나와요 🌱"];
+  const out = [], avg = k => logs.reduce((a,l)=>a+l[k],0) / logs.length;
+  const names = {}; logs.forEach(l => names[l.name] = (names[l.name]||0) + 1);
+  const top = Object.entries(names).sort((a,b)=>b[1]-a[1])[0];
+  out.push(`가장 많이 들어간 수술은 <b>${top[0]}</b> (${top[1]}회)예요.`);
+  const scrub = logs.filter(l => l.role === "소독간호사").length;
+  out.push(`역할 비율: 소독 ${scrub}건 · 순회 ${logs.length - scrub}건`);
+  const dc = {}; logs.forEach(l => { const d = deptFor(l.name); dc[d] = (dc[d] || 0) + 1; });
+  out.push("과별 기록: " + Object.entries(dc).sort((a, b) => b[1] - a[1]).map(([d, c]) => `${d} ${c}건`).join(" · "));
+  const sc = {}; logs.forEach(l => { const s = subFor(l.name); if (s) { const k = deptFor(l.name) + " " + s; sc[k] = (sc[k] || 0) + 1; } });
+  if (Object.keys(sc).length) out.push("분과별 기록: " + Object.entries(sc).sort((a, b) => b[1] - a[1]).map(([k, c]) => `${k} ${c}건`).join(" · "));
+  const dcount = {}; logs.forEach(l => { if (l.doc) dcount[l.doc] = (dcount[l.doc] || 0) + 1; });
+  const topDoc = Object.entries(dcount).sort((a, b) => b[1] - a[1])[0];
+  if (topDoc) out.push(`가장 많이 함께한 집도의는 <b>${h(topDoc[0])}</b> (${topDoc[1]}회)예요.`);
+  const ac = {}; logs.forEach(l => { if (l.appr) ac[l.appr] = (ac[l.appr] || 0) + 1; });
+  const at = Object.values(ac).reduce((a, b) => a + b, 0);
+  if (at) out.push("수술 방식: " + Object.entries(ac).sort((a, b) => b[1] - a[1]).map(([k, c]) => `${k} ${c}건(${Math.round(c / at * 100)}%)`).join(" · "));
+  out.push(`평균 난이도 ${avg("diff").toFixed(1)} · 평균 만족도 ${avg("self").toFixed(1)}`);
+  if (avg("self") < avg("diff") - 0.5) out.push("난이도에 비해 만족도가 낮아요. 어려운 수술 전 준비 체크리스트를 만들어 보면 어떨까요?");
+  else if (avg("self") >= 4) out.push("만족도가 높아요! 잘 된 점을 메모로 남기면 나만의 노하우가 돼요 ✨");
+  const memos = logs.filter(l => l.memo && l.memo.trim()).length;
+  if (memos / logs.length < 0.3) out.push("메모를 더 남기면 보너스 XP와 더 정확한 피드백을 받을 수 있어요.");
+  return out;
+}
+function render(){
+  const xp = logs.reduce((a,l)=>a+l.xp,0), lv = levelOf(xp);
+  const lo = xpFor(lv), hi = xpFor(lv + 1);
+  $("lv").textContent = lv;
+  $("title").textContent = TITLES[Math.min(lv - 1, TITLES.length - 1)];
+  $("xpbar").style.width = ((xp - lo) / (hi - lo) * 100) + "%";
+  $("xptext").textContent = `${xp} XP · 다음 레벨까지 ${hi - xp} XP`;
+  $("sCount").textContent = logs.length;
+  $("sTypes").textContent = new Set(logs.map(l=>l.name)).size;
+  $("sStreak").textContent = streak();
+  $("who").textContent = profile ? `${profile.name} 님 · ${dday(profile.hire)}` : "";
+  fillDepts();
+  renderTypes();
+  renderSubs();
+  renderDocs();
+  fillAppr();
+  $("fb").innerHTML = feedback().map(t => `<li>${t}</li>`).join("");
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  $("list").innerHTML = logs.slice().reverse().map(l => `
+    <div class="item"><button class="del" data-id="${l.id}">삭제</button><button class="ed" data-eid="${l.id}">수정</button>
+    <b>${esc(l.name)}</b><br>
+    <span class="tag">${l.date}</span><span class="tag">${deptFor(l.name)}${subFor(l.name) ? " · " + esc(subFor(l.name)) : ""}</span><span class="tag">${l.role}</span>${l.doc ? `<span class="tag">집도의 ${esc(l.doc)}</span>` : ""}${l.appr ? `<span class="tag">${l.appr}</span>` : ""}<span class="tag">난이도 ${l.diff}</span><span class="tag">+${l.xp}XP</span>
+    ${l.memo ? `<div class="sub">${esc(l.memo)}</div>` : ""}</div>`).join("") || '<p class="sub">아직 기록이 없어요.</p>';
+  renderDash();
+  renderCharts();
+}
+
+// 수술 목록 그리기 + 추가/삭제
+function renderTypes(){
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const sel = $("name"), prev = sel.value;
+  sel.innerHTML = types.length
+    ? DEPTS.filter(d => types.some(t => deptFor(t) === d)).map(d => `<optgroup label="${d}">` + types.filter(t => deptFor(t) === d).sort((a, b) => sortMode === "count" ? countOf(b) - countOf(a) : 0).map(t => `<option>${esc(t)}</option>`).join("") + "</optgroup>").join("")
+    : "<option value=''>먼저 분과/집도의 탭에서 수술을 추가해 주세요</option>";
+  if (types.includes(prev)) sel.value = prev;
+  const row = i => {
+    const t = types[i], n = logs.filter(l => l.name === t).length;
+    const opts = DEPTS.map(d => `<option${d === deptFor(t) ? " selected" : ""}>${d}</option>`).join("");
+    const sopts = "<option value=''>분과 없음</option>" + (subs[deptFor(t)] || []).map(s => `<option${s === subFor(t) ? " selected" : ""}>${esc(s)}</option>`).join("");
+    return `<div class="item"><button class="del" data-i="${i}">삭제</button><button class="ed" data-i="${i}">수정</button><span class="grip" data-i="${i}">☰</span>${esc(t)} <span class="tag">${n}회</span><div style="margin-top:4px">${apprTags(t)}</div><div><select class="dsel" data-i="${i}">${opts}</select><select class="ssel" data-i="${i}">${sopts}</select></div></div>`;
+  };
+  const withItems = DEPTS.filter(d => types.some(t => deptFor(t) === d));
+  if (!withItems.includes(selDept)) selDept = withItems[0] || null;
+  let body = "";
+  if (selDept) {
+    const inDept = types.map((t, i) => i).filter(i => deptFor(types[i]) === selDept).sort((a, b) => sortMode === "count" ? countOf(types[b]) - countOf(types[a]) : 0);
+    const subKeys = [...new Set(inDept.map(i => subFor(types[i])))];
+    if (selSub !== "all" && !subKeys.includes(selSub)) selSub = "all";
+    const chip = (key, label, n) => `<button class="sbtn${key === selSub ? " on" : ""}" data-s="${esc(key)}">${esc(label)} ${n}</button>`;
+    const hasSub = subKeys.some(k => k);
+    body = `<div class="chips">` + (hasSub ? chip("all", "전체", inDept.length) + subKeys.map(k => chip(k, k || "분과 없음", inDept.filter(i => subFor(types[i]) === k).length)).join("") : "") + `</div>`
+      + `<div class="sub" style="margin:4px 0 2px">정렬 <button class="srt${sortMode === "count" ? " on" : ""}" data-m="count">횟수순</button><button class="srt${sortMode === "manual" ? " on" : ""}" data-m="manual">직접 정렬 (☰를 끌어서 이동)</button></div>` + inDept.filter(i => selSub === "all" || subFor(types[i]) === selSub).map(row).join("");
+  }
+  $("typeList").innerHTML = withItems.length
+    ? `<div class="dgrid">` + withItems.map(d => `<button class="dbtn${d === selDept ? " on" : ""}" data-d="${esc(d)}">${esc(d)} <span>${types.filter(t => deptFor(t) === d).length}</span></button>`).join("") + `</div>` + body
+    : '<p class="sub">아직 추가한 수술이 없어요.</p>';
+}
+// 과 선택 메뉴와 내가 추가한 과 표시를 다시 그림
+function fillDepts(){
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const opts = DEPTS.map(d => `<option>${esc(d)}</option>`).join("");
+  ["newDept", "subDept", "docDept"].forEach(id => { const el = $(id), v = el.value; el.innerHTML = opts; if (DEPTS.includes(v)) el.value = v; });
+  $("deptChips").innerHTML = custom.map((d, i) => `<span class="tag">${esc(d)} <b class="x" data-ci="${i}">✕</b></span>`).join("");
+}
+$("addType").onclick = () => {
+  const t = $("newType").value.trim();
+  if (!t) return;
+  if (types.includes(t)) { alert("이미 목록에 있어요"); return; }
+  types.push(t); storeTypes();
+  deptOf[t] = $("newDept").value; storeDepts();
+  selDept = deptOf[t]; selSub = "all";
+  $("newType").value = "";
+  render();
+};
+$("typeList").onclick = async e => {
+  if (e.target.classList.contains("del") && await ask("목록에서 삭제할까요? (지난 기록은 그대로 남아요)")) {
+    types.splice(+e.target.dataset.i, 1); storeTypes(); render();
+  }
+};
+
+$("typeList").onchange = e => {
+  if (e.target.classList.contains("dsel")) {
+    const t = types[+e.target.dataset.i];
+    deptOf[t] = e.target.value; delete subOf[t]; storeDepts(); storeSubs();
+    selDept = e.target.value; selSub = "all"; render();
+  }
+};
+
+$("typeList").addEventListener("change", e => {
+  if (e.target.classList.contains("ssel")) {
+    const t = types[+e.target.dataset.i];
+    if (e.target.value) subOf[t] = e.target.value; else delete subOf[t];
+    if (selSub !== "all") selSub = e.target.value;
+    storeSubs(); render();
+  }
+});
+
+// 분과 목록 그리기 + 추가/삭제
+function renderSubs(){
+  const total = DEPTS.reduce((a, d) => a + (subs[d] || []).length, 0);
+  $("subToggle").textContent = `${subOpen ? "▾" : "▸"} 추가한 분과 (${total})`;
+  $("subList").hidden = !subOpen;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  $("subList").innerHTML = DEPTS.filter(d => (subs[d] || []).length).map(d =>
+    `<div class="dh">${d}</div>` + subs[d].map((s, i) => `<span class="tag">${esc(s)} <b class="x" data-d="${d}" data-i="${i}">✕</b></span>`).join("")
+  ).join("") || '<p class="sub">아직 만든 분과가 없어요.</p>';
+}
+$("addSub").onclick = () => {
+  const s = $("newSub").value.trim(), d = $("subDept").value;
+  if (!s) return;
+  subs[d] = subs[d] || [];
+  if (subs[d].includes(s)) { alert("이미 있는 분과예요"); return; }
+  subs[d].push(s); storeSubs(); subOpen = true;
+  $("newSub").value = ""; render();
+};
+$("subList").onclick = async e => {
+  if (e.target.classList.contains("x") && await ask("이 분과를 삭제할까요?")) {
+    subs[e.target.dataset.d].splice(+e.target.dataset.i, 1); storeSubs(); render();
+  }
+};
+
+$("addDept").onclick = () => {
+  const d = $("newDeptName").value.trim();
+  if (!d) return;
+  if (DEPTS.includes(d)) { alert("이미 있는 과예요"); return; }
+  custom.push(d); storeCustom(); buildDepts();
+  $("newDeptName").value = ""; render();
+};
+$("deptChips").onclick = async e => {
+  if (e.target.classList.contains("x") && await ask("이 과를 삭제할까요? (속해 있던 수술은 ETC로 옮겨져요)")) {
+    custom.splice(+e.target.dataset.ci, 1); storeCustom(); buildDepts(); render();
+  }
+};
+
+// 알림/확인 팝업이 막히는 환경에서도 되도록 화면 안에서 직접 보여 줍니다
+function say(msg){
+  const t = $("toast"); t.style.background = "var(--main)"; t.textContent = msg; t.style.display = "block";
+  setTimeout(() => { t.style.display = "none"; t.style.background = ""; }, 2200);
+}
+window.alert = say;
+function ask(msg, yes = "삭제"){
+  return new Promise(res => {
+    const b = $("askbar");
+    b.innerHTML = `<div>${msg}</div><div class="row"><button id="askNo">취소</button><button id="askYes">${yes}</button></div>`;
+    b.style.display = "block";
+    const done = v => { b.style.display = "none"; res(v); };
+    $("askNo").onclick = () => done(false);
+    $("askYes").onclick = () => done(true);
+  });
+}
+
+// 집도의 목록: 과·분과별로 묶어서 보여 줍니다
+function h(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function docGroups(){ const g = []; DEPTS.forEach(d => ["", ...(subs[d] || [])].forEach(s => g.push([d, s]))); return g; }
+function fillDocSub(){
+  const el = $("docSub"), v = el.value, d = $("docDept").value;
+  el.innerHTML = "<option value=''>분과 없음</option>" + (subs[d] || []).map(s => `<option>${h(s)}</option>`).join("");
+  if ((subs[d] || []).includes(v)) el.value = v;
+}
+function renderDocs(){
+  fillDocSub();
+  const inGroup = (o, d, s) => docDept(o) === d && docSub(o) === s;
+  const sel = $("doc"), prev = sel.value;
+  sel.innerHTML = "<option value=''>집도의 선택 안 함</option>" + docGroups().map(([d, s]) => {
+    const list = docs.filter(o => inGroup(o, d, s)).sort((a, b) => docCount(b.name) - docCount(a.name));
+    return list.length ? `<optgroup label="${h(d)}${s ? " · " + h(s) : ""}">` + list.map(o => `<option>${h(o.name)}</option>`).join("") + "</optgroup>" : "";
+  }).join("");
+  if (docs.some(o => o.name === prev)) sel.value = prev;
+  const row = i => {
+    const o = docs[i], n = logs.filter(l => l.doc === o.name).length;
+    const dopts = DEPTS.map(d => `<option${d === docDept(o) ? " selected" : ""}>${h(d)}</option>`).join("");
+    const sopts = "<option value=''>분과 없음</option>" + (subs[docDept(o)] || []).map(s => `<option${s === docSub(o) ? " selected" : ""}>${h(s)}</option>`).join("");
+    return `<div class="item"><button class="del" data-i="${i}">삭제</button>${h(o.name)} <span class="tag">${n}회</span><div><select class="dsel" data-i="${i}">${dopts}</select><select class="ssel" data-i="${i}">${sopts}</select></div></div>`;
+  };
+  const withItems = DEPTS.filter(d => docs.some(o => docDept(o) === d));
+  if (!withItems.includes(docSelDept)) docSelDept = withItems[0] || null;
+  let body = "";
+  if (docSelDept) {
+    const inDept = docs.map((o, i) => i).filter(i => docDept(docs[i]) === docSelDept).sort((a, b) => docCount(docs[b].name) - docCount(docs[a].name));
+    const subKeys = [...new Set(inDept.map(i => docSub(docs[i])))];
+    if (docSelSub !== null && docSelSub !== "all" && !subKeys.includes(docSelSub)) docSelSub = null;
+    const chip = (key, label, n) => `<button class="sbtn${key === docSelSub ? " on" : ""}" data-s="${h(key)}">${h(label)} ${n}</button>`;
+    body = `<div class="chips">` + (subKeys.length > 1 ? chip("all", "전체", inDept.length) : "") + subKeys.map(k => chip(k, k || "분과 없음", inDept.filter(i => docSub(docs[i]) === k).length)).join("") + `</div>`
+      + (docSelSub === null ? '<p class="sub">분과 버튼을 누르면 집도의 목록이 보여요.</p>' : inDept.filter(i => docSelSub === "all" || docSub(docs[i]) === docSelSub).map(row).join(""));
+  }
+  $("docList").innerHTML = withItems.length
+    ? `<div class="dgrid">` + withItems.map(d => `<button class="dbtn${d === docSelDept ? " on" : ""}" data-d="${h(d)}">${h(d)} <span>${docs.filter(o => docDept(o) === d).length}</span></button>`).join("") + `</div>` + body
+    : '<p class="sub">아직 추가한 집도의가 없어요.</p>';
+}
+$("docDept").onchange = fillDocSub;
+$("addDoc").onclick = () => {
+  const n = $("newDoc").value.trim();
+  if (!n) return;
+  if (docs.some(o => o.name === n)) { alert("이미 있는 집도의예요"); return; }
+  docs.push({ name: n, dept: $("docDept").value, sub: $("docSub").value }); storeDocs();
+  docSelDept = $("docDept").value; docSelSub = $("docSub").value;
+  $("newDoc").value = ""; render();
+};
+$("docList").onclick = async e => {
+  if (e.target.classList.contains("del") && await ask("이 집도의를 목록에서 삭제할까요? (지난 기록은 그대로 남아요)")) {
+    docs.splice(+e.target.dataset.i, 1); storeDocs(); render();
+  }
+};
+$("docList").addEventListener("change", e => {
+  const o = docs[+e.target.dataset.i];
+  if (!o) return;
+  if (e.target.classList.contains("dsel")) { o.dept = e.target.value; o.sub = ""; docSelDept = o.dept; docSelSub = ""; }
+  else if (e.target.classList.contains("ssel")) { o.sub = e.target.value; if (docSelSub !== null && docSelSub !== "all") docSelSub = o.sub; }
+  else return;
+  storeDocs(); render();
+});
+
+// 수술 방식 선택 메뉴
+function fillAppr(){
+  const el = $("appr"), v = el.value;
+  const list = APPR;
+  el.innerHTML = "<option value=''>선택 안 함</option>" + list.map(a => `<option>${a}</option>`).join("");
+  if (list.includes(v)) el.value = v;
+}
+
+// 글자를 입력받는 화면 안 창 (취소하면 null)
+function askText(msg, init){
+  return new Promise(res => {
+    const b = $("askbar");
+    b.innerHTML = `<div>${msg}</div><input id="askIn" style="margin-top:8px"><div class="row"><button id="askNo">취소</button><button id="askYes">저장</button></div>`;
+    $("askIn").value = init;
+    b.style.display = "block";
+    const done = v => { b.style.display = "none"; res(v); };
+    $("askNo").onclick = () => done(null);
+    $("askYes").onclick = () => done($("askIn").value);
+  });
+}
+
+// 수술명 수정: 목록과 지난 기록의 이름을 함께 바꿈
+$("typeList").addEventListener("click", async e => {
+  if (!e.target.classList.contains("ed")) return;
+  const i = +e.target.dataset.i, old = types[i];
+  const nv = await askText("수술명을 수정해요 (지난 기록도 함께 바뀜어요)", old);
+  if (nv === null) return;
+  const name = nv.trim();
+  if (!name || name === old) return;
+  if (types.includes(name)) { alert("이미 있는 수술명이에요"); return; }
+  types[i] = name; storeTypes();
+  logs.forEach(l => { if (l.name === old) l.name = name; }); store(logs);
+  if (deptOf[old] !== undefined) { deptOf[name] = deptOf[old]; delete deptOf[old]; storeDepts(); }
+  if (subOf[old] !== undefined) { subOf[name] = subOf[old]; delete subOf[old]; storeSubs(); }
+  Object.keys(prefNotes).forEach(k => { if (k.startsWith(old + "|")) { prefNotes[name + k.slice(old.length)] = prefNotes[k]; delete prefNotes[k]; } });
+  storePrefs();
+  render();
+});
+
+// 수술 목록 대시보드: 과 버튼 / 분과 필터를 누르면 해당 수술만 보여 줍니다
+$("typeList").addEventListener("click", e => {
+  const b = e.target.closest(".dbtn"), s = e.target.closest(".sbtn");
+  if (b) { selDept = b.dataset.d; selSub = "all"; render(); }
+  else if (s) { selSub = s.dataset.s; render(); }
+});
+
+// 집도의 대시보드: 과 버튼 / 분과 필터
+$("docList").addEventListener("click", e => {
+  const b = e.target.closest(".dbtn"), s = e.target.closest(".sbtn");
+  if (b) { docSelDept = b.dataset.d; docSelSub = null; render(); }
+  else if (s) { docSelSub = (docSelSub === s.dataset.s) ? null : s.dataset.s; render(); }
+});
+
+// 탭: 카드마다 어느 탭에 속하는지 표시하고, 선택한 탭의 카드만 보여 줍니다
+const TABS = [["main", "🏠 홈"], ["stat", "📊 통계"], ["dash", "📚 수술별"], ["sub", "🏷️분과/🩺집도의"], ["set", "⚙️ 설정"]];
+document.querySelectorAll("main > .card").forEach(c => {
+  if (c.classList.contains("hero")) return;
+  c.dataset.tab = c.contains($("list")) ? "dash" : c.contains($("backupBox")) ? "set" : (c.contains($("subList")) || c.contains($("typeList"))) ? "sub" : c.contains($("docList")) ? "sub" : (c.classList.contains("stats") || c.contains($("fb")) || c.contains($("chartBox")) ) ? "stat" : "main";
+});
+const tabBar = document.createElement("div");
+tabBar.className = "tabs";
+tabBar.innerHTML = TABS.map(([k, label]) => `<button class="tabbtn" data-t="${k}">${label}</button>`).join("");
+document.querySelector(".hero").after(tabBar);
+function showTab(t){
+  document.querySelectorAll("main > .card[data-tab]").forEach(c => { c.hidden = c.dataset.tab !== t; });
+  document.querySelectorAll(".tabbtn").forEach(b => b.classList.toggle("on", b.dataset.t === t));
+}
+tabBar.onclick = e => { const b = e.target.closest(".tabbtn"); if (b) { showTab(b.dataset.t); window.scrollTo(0, 0); } };
+showTab("main");
+
+// 정렬 버튼 + ☰ 끌어서 순서 바꾸기 (터치/마우스 공통)
+$("typeList").addEventListener("click", e => {
+  const m = e.target.closest(".srt");
+  if (m) { setSort(m.dataset.m); render(); }
+});
+let drag = null;
+$("typeList").addEventListener("pointerdown", e => {
+  const g = e.target.closest(".grip");
+  if (!g) return;
+  e.preventDefault();
+  drag = { i: +g.dataset.i, el: g.closest(".item"), over: null };
+  drag.el.classList.add("drag");
+  try{ g.setPointerCapture(e.pointerId); }catch(err){}
+});
+$("typeList").addEventListener("pointermove", e => {
+  if (!drag) return;
+  const t = document.elementFromPoint(e.clientX, e.clientY);
+  const it = t && t.closest("#typeList .item");
+  if (drag.over && drag.over !== it) drag.over.classList.remove("over");
+  drag.over = (it && it !== drag.el && it.querySelector(".grip")) ? it : null;
+  if (drag.over) drag.over.classList.add("over");
+});
+function endDrag(drop){
+  if (!drag) return;
+  const d = drag; drag = null;
+  d.el.classList.remove("drag");
+  if (d.over) d.over.classList.remove("over");
+  if (!drop || !d.over) return;
+  const to = +d.over.querySelector(".grip").dataset.i;
+  const moved = types.splice(d.i, 1)[0];
+  types.splice(to, 0, moved);
+  storeTypes();
+  if (sortMode !== "manual") { setSort("manual"); say("직접 정렬 모드로 바꾸었어요"); }
+  render();
+}
+$("typeList").addEventListener("pointerup", () => endDrag(true));
+$("typeList").addEventListener("pointercancel", () => endDrag(false));
+
+// 기록 수정: XP는 모든 기록을 순서대로 다시 계산
+function recalcXP(){
+  const seen = new Set();
+  logs.forEach(l => { l.xp = calcXP(l, !seen.has(l.name)); seen.add(l.name); });
+}
+function openEdit(id){
+  const l = logs.find(x => x.id == id);
+  if (!l) return;
+  const box = $("editbox");
+  const opts = (list, cur) => list.map(v => `<option${v === cur ? " selected" : ""}>${h(v)}</option>`).join("");
+  const optsE = (list, cur) => `<option value=''>선택 안 함</option>` + opts(list, cur);
+  const names = types.includes(l.name) ? types : [l.name, ...types];
+  const docNames = docs.map(o => o.name);
+  if (l.doc && !docNames.includes(l.doc)) docNames.unshift(l.doc);
+  box.innerHTML = `<div class="panel"><h2>기록 수정</h2>
+    <label>날짜</label><input type="date" id="eDate">
+    <div class="row"><div><label>수술명</label><select id="eName">${opts(names, l.name)}</select></div>
+      <div><label>수술 방식</label><select id="eAppr">${optsE(APPR, l.appr)}</select></div></div>
+    <div class="row"><div><label>집도의</label><select id="eDoc">${optsE(docNames, l.doc)}</select></div>
+      <div><label>내 역할</label><select id="eRole">${opts(["소독간호사", "순회간호사"], l.role)}</select></div></div>
+    <div class="row"><div><label>난이도 (1~5)</label><select id="eDiff">${opts(["1","2","3","4","5"], String(l.diff))}</select></div>
+      <div><label>내 만족도 (1~5)</label><select id="eSelf">${opts(["1","2","3","4","5"], String(l.self))}</select></div></div>
+    <label>메모</label><textarea id="eMemo" rows="3"></textarea>
+    <div class="row"><button id="eNo">취소</button><button id="eYes">저장</button></div></div>`;
+  $("eDate").value = l.date;
+  $("eMemo").value = l.memo || "";
+  box.style.display = "block";
+  $("eNo").onclick = () => { box.style.display = "none"; };
+  $("eYes").onclick = () => {
+    l.date = $("eDate").value || l.date;
+    l.name = $("eName").value; l.appr = $("eAppr").value; l.doc = $("eDoc").value; l.role = $("eRole").value;
+    l.diff = +$("eDiff").value; l.self = +$("eSelf").value; l.memo = $("eMemo").value;
+    recalcXP(); store(logs);
+    box.style.display = "none";
+    say("기록을 수정했어요");
+    render();
+  };
+}
+$("list").addEventListener("click", e => {
+  const b = e.target.closest(".ed");
+  if (b && b.dataset.pk !== undefined) openNote(b.dataset.pk);
+  else if (b) openMemo(b.dataset.mid);
+  const hd = e.target.closest(".dhead");
+  if (hd) { const k = hd.dataset.k; if (openCards.has(k)) openCards.delete(k); else openCards.add(k); render(); return; }
+  const nb = e.target.closest(".nbtn");
+  if (nb) { dashName = nb.dataset.n; render(); }
+});
+
+// 수술별 대시보드: 수술 버튼 → 집도의별 카드(횟수 · 수술 방식 · 메모)
+function renderDash(){
+  const names = [...types];
+  logs.forEach(l => { if (!names.includes(l.name)) names.push(l.name); });
+  names.sort((a, b) => countOf(b) - countOf(a));
+  if (!names.length) { $("list").innerHTML = '<p class="sub">아직 추가한 수술이 없어요.</p>'; return; }
+  if (!names.includes(dashName)) dashName = names[0];
+  const btns = names.map(n => `<button class="nbtn${n === dashName ? " on" : ""}" data-n="${h(n)}">${h(n)} <span>${countOf(n)}</span></button>`).join("");
+  const mine = logs.filter(l => l.name === dashName).reverse();
+  const groups = {};
+  mine.forEach(l => { const k = l.doc || ""; (groups[k] = groups[k] || []).push(l); });
+  const keys = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length);
+  const cards = keys.map(k => {
+    const arr = groups[k], ap = {};
+    arr.forEach(l => { const a = l.appr || "방식 미선택"; ap[a] = (ap[a] || 0) + 1; });
+    const apTags = Object.entries(ap).sort((a, b) => b[1] - a[1]).map(([a, c]) => `<span class="tag">${h(a)} ${c}</span>`).join("");
+    const memos = arr.map(l => `<div class="memo"><div class="mt">${l.appr ? `<div><span class="tag">${h(l.appr)}</span></div>` : ""}<div>${l.memo && l.memo.trim() ? h(l.memo) : '<span class="sub">메모 없음</span>'}</div></div><button class="ed" data-mid="${l.id}">수정</button></div>`).join("");
+    const key = dashName + "|" + k, open = openCards.has(key);
+    const note = prefNotes[key] || "";
+    const prefBox = k ? `<div class="pref"><div><div class="pt">📌 이 수술 노트</div><div class="pb">${note.trim() ? h(note) : '<span class="sub">아직 노트가 없어요. 수정을 눌러 적어 보세요</span>'}</div></div><button class="ed" data-pk="${h(key)}">수정</button></div>` : "";
+    return `<div class="dcard"><div class="dhead" data-k="${h(key)}"><div class="dtitle">${open ? "▾" : "▸"} ${k ? "🩺 " + h(k) : "집도의 미지정"} <span class="tag">${arr.length}회</span></div><div>${apTags}</div></div>${prefBox}${open ? memos : ""}</div>`;
+  }).join("");
+  $("list").innerHTML = `<div class="ngrid">${btns}</div><div class="dh" style="margin-top:6px">${h(dashName)} · 총 ${mine.length}회</div>` + (cards || '<p class="sub">아직 이 수술의 기록이 없어요.</p>');
+}
+
+// 메모 수정 창 (전체 항목 수정 · 기록 삭제로도 이어짐)
+function openMemo(id){
+  const l = logs.find(x => x.id == id);
+  if (!l) return;
+  const box = $("editbox");
+  box.innerHTML = `<div class="panel"><h2>메모 수정</h2>
+    <div class="sub">${h(l.name)}${l.doc ? " · " + h(l.doc) : ""}${l.appr ? " · " + h(l.appr) : ""}</div>
+    <textarea id="mMemo" rows="5" style="margin-top:8px"></textarea>
+    <div class="row"><button id="eNo">취소</button><button id="eYes">저장</button></div>
+    <div style="margin-top:12px"><button class="srt" id="mAll">전체 항목 수정</button><button class="srt" id="mDel">기록 삭제</button></div></div>`;
+  $("mMemo").value = l.memo || "";
+  box.style.display = "block";
+  $("eNo").onclick = () => { box.style.display = "none"; };
+  $("eYes").onclick = () => {
+    l.memo = $("mMemo").value;
+    recalcXP(); store(logs);
+    box.style.display = "none";
+    say("메모를 수정했어요");
+    render();
+  };
+  $("mAll").onclick = () => openEdit(id);
+  $("mDel").onclick = async () => {
+    box.style.display = "none";
+    if (await ask("이 기록을 삭제할까요?")) { logs = logs.filter(x => x.id != id); recalcXP(); store(logs); render(); }
+  };
+}
+
+// 프로필: 처음 실행 시 이름·입사일을 저장하고, 입사일로부터 D+일수를 표시
+const PKEY = "surgeryProfile";
+function loadProfile(){
+  try{ const p = JSON.parse(localStorage.getItem(PKEY)); if (p && p.name && p.hire) return p; }catch(e){}
+  return null;
+}
+let profile = loadProfile();
+function dday(hire){
+  const a = new Date(hire + "T00:00:00"), n = new Date();
+  n.setHours(0, 0, 0, 0);
+  const d = Math.round((n - a) / 86400000);
+  return d >= 0 ? `D+${String(d).padStart(2, "0")}일` : `D${d}일`;
+}
+function openProfile(first){
+  const box = $("onboard");
+  box.innerHTML = `<div class="panel"><h1 style="margin-top:0">${first ? "👋 환영해요!" : "내 프로필"}</h1>
+    <p class="sub">${first ? "처음이시네요. 간단한 프로필을 먼저 저장해 주세요." : "이름과 입사일을 고칠 수 있어요."}</p>
+    <label>이름</label><input id="pName" placeholder="이름">
+    <label>입사일</label><input type="date" id="pHire">
+    <div class="row" style="margin-top:6px">${first ? "" : '<button id="pNo">취소</button>'}<button id="pYes">${first ? "시작하기" : "저장"}</button></div></div>`;
+  $("pName").value = profile ? profile.name : "";
+  $("pHire").value = profile ? profile.hire : "";
+  box.style.display = "block";
+  if (!first) $("pNo").onclick = () => { box.style.display = "none"; };
+  $("pYes").onclick = () => {
+    const n = $("pName").value.trim(), d = $("pHire").value;
+    if (!n || !d) { say("이름과 입사일을 모두 입력해 주세요"); return; }
+    profile = { name: n, hire: d };
+    try{ localStorage.setItem(PKEY, JSON.stringify(profile)); }catch(e){}
+    box.style.display = "none";
+    render();
+  };
+}
+$("who").onclick = () => openProfile(false);
+if (!profile) openProfile(true);
+
+// 백업 / 복원: 앱의 모든 저장 데이터를 JSON 한 덩어리로 내보내고 되살림
+const BKEYS = ["surgeryLog", "surgeryTypes", "surgeryCustomDepts", "surgeryDepts", "surgerySubs", "surgerySubOf", "surgerySurgeons", "surgerySort", "surgeryProfile", "surgeryPrefNotes"];
+function makeBackup(){
+  const data = {};
+  BKEYS.forEach(k => { try{ const v = localStorage.getItem(k); if (v !== null) data[k] = v; }catch(e){} });
+  return JSON.stringify({ app: "surgery-rpg", version: 1, savedAt: new Date().toISOString(), data }, null, 1);
+}
+function stamp(){ const d = new Date(); return d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0"); }
+function showBackupInfo(){
+  let t = ""; try{ t = localStorage.getItem("surgeryLastBackup") || ""; }catch(e){}
+  $("bkInfo").textContent = t ? "마지막 백업: " + t : "아직 백업한 적이 없어요.";
+}
+function markBackup(){ try{ localStorage.setItem("surgeryLastBackup", new Date().toLocaleDateString("ko-KR")); }catch(e){} showBackupInfo(); }
+$("bkSave").onclick = async () => {
+  let dl = null;
+  try{ dl = window.claude && await window.claude.use("downloads"); }catch(e){}
+  if (!dl) { say("이 화면에서는 파일 저장을 쓸 수 없어요. '백업 내용 복사'를 이용해 주세요"); return; }
+  try{
+    await dl.save({ filename: `수술실생존일기-백업-${stamp()}.json`, data: makeBackup() });
+    markBackup(); say("백업 파일을 저장했어요");
+  }catch(err){ if (!err || err.code !== "declined") say("저장에 실패했어요. '백업 내용 복사'를 이용해 주세요"); }
+};
+$("bkCopy").onclick = async () => {
+  const txt = makeBackup();
+  try{ await navigator.clipboard.writeText(txt); markBackup(); say("백업 내용을 복사했어요. 메모 앱 등에 붙여넣어 보관하세요"); return; }catch(e){}
+  const ta = $("bkText"); ta.value = txt; ta.focus(); ta.select();
+  say("복사가 막혀 있어요. 아래 칸의 내용을 직접 복사해 주세요");
+};
+function restoreFrom(text){
+  let obj;
+  try{ obj = JSON.parse(text); }catch(e){ say("백업 형식이 올바르지 않아요"); return; }
+  if (!obj || obj.app !== "surgery-rpg" || !obj.data || typeof obj.data !== "object") { say("이 앱의 백업이 아니에요"); return; }
+  try{ if (obj.data.surgeryLog && !Array.isArray(JSON.parse(obj.data.surgeryLog))) throw 0; }catch(e){ say("백업 내용이 손상되었어요"); return; }
+  ask("지금 앱에 있는 모든 기록을 이 백업 내용으로 바꿔요. 계속할까요?", "복원").then(ok => {
+    if (!ok) return;
+    BKEYS.forEach(k => { try{ if (typeof obj.data[k] === "string") localStorage.setItem(k, obj.data[k]); else localStorage.removeItem(k); }catch(e){} });
+    say("복원했어요. 화면을 새로 불러와요 (안 되면 앱을 다시 열어 주세요)");
+    setTimeout(() => { try{ location.reload(); }catch(e){} }, 1200);
+  });
+}
+$("bkFile").onchange = e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => restoreFrom(String(r.result));
+  r.readAsText(f);
+  e.target.value = "";
+};
+$("bkRestore").onclick = () => {
+  const t = $("bkText").value.trim();
+  if (!t) { say("붙여넣은 내용이 없어요"); return; }
+  restoreFrom(t);
+};
+showBackupInfo();
+
+// 집도의 × 수술 전용 노트 (선호 기구·봉합사·체위·주의사항 등)
+function storePrefs(){ try{ localStorage.setItem("surgeryPrefNotes", JSON.stringify(prefNotes)); }catch(e){} }
+function openNote(key){
+  const cut = key.lastIndexOf("|");
+  const sName = key.slice(0, cut), dName = key.slice(cut + 1);
+  const box = $("editbox");
+  box.innerHTML = `<div class="panel"><h2>📌 이 수술 노트</h2>
+    <div class="sub">${h(dName)} · ${h(sName)}</div>
+    <textarea id="nMemo" rows="6" style="margin-top:8px" placeholder="선호하는 기구, 봉합사, 체위, 주의사항 등"></textarea>
+    <div class="row"><button id="eNo">취소</button><button id="eYes">저장</button></div></div>`;
+  $("nMemo").value = prefNotes[key] || "";
+  box.style.display = "block";
+  $("eNo").onclick = () => { box.style.display = "none"; };
+  $("eYes").onclick = () => {
+    const v = $("nMemo").value;
+    if (v.trim()) prefNotes[key] = v; else delete prefNotes[key];
+    storePrefs();
+    box.style.display = "none";
+    say("노트를 저장했어요");
+    render();
+  };
+}
+
+// 홈에서 바로 새 수술 추가 (수술명 + 과 + 분과) → 추가하면 기록 칸에 자동 선택
+function openNewSurg(){
+  const box = $("editbox");
+  const dOpts = DEPTS.map(d => `<option>${h(d)}</option>`).join("");
+  box.innerHTML = `<div class="panel"><h2>+ 새 수술 추가</h2>
+    <label>수술명</label><input id="nsName" placeholder="예: 복강경 담낭절제술">
+    <div class="row"><div><label>과</label><select id="nsDept">${dOpts}</select></div>
+      <div><label>분과</label><select id="nsSub"></select></div></div>
+    <div class="row"><button id="eNo">취소</button><button id="eYes">추가</button></div></div>`;
+  const fillSub = () => {
+    const d = $("nsDept").value;
+    $("nsSub").innerHTML = "<option value=''>분과 없음</option>" + (subs[d] || []).map(s => `<option>${h(s)}</option>`).join("");
+  };
+  fillSub();
+  $("nsDept").onchange = fillSub;
+  box.style.display = "block";
+  $("eNo").onclick = () => { box.style.display = "none"; };
+  $("eYes").onclick = () => {
+    const n = $("nsName").value.trim();
+    if (!n) { say("수술명을 입력해 주세요"); return; }
+    const exists = types.includes(n);
+    if (!exists) {
+      const d = $("nsDept").value, s = $("nsSub").value;
+      types.push(n); storeTypes();
+      deptOf[n] = d; storeDepts();
+      if (s) { subOf[n] = s; }
+      storeSubs();
+      selDept = d; selSub = "all";
+    }
+    box.style.display = "none";
+    render();
+    $("name").value = n;
+    say(exists ? "이미 목록에 있어서 선택했어요" : "새 수술을 추가했어요");
+  };
+}
+$("newSurg").onclick = openNewSurg;
+
+// 통계 차트: 월별 막대 + 과별/수술 방식별 도넛 (외부 라이브러리 없이 SVG로 직접 그림)
+const PALETTE = ["#4f46e5", "#16a34a", "#f59e0b", "#ef4444", "#06b6d4", "#a855f7", "#ec4899", "#84cc16", "#64748b", "#f97316"];
+function donut(entries, emptyMsg){
+  const total = entries.reduce((a, e) => a + e[1], 0);
+  if (!total) return `<p class="sub">${emptyMsg}</p>`;
+  const C = 2 * Math.PI * 40;
+  let acc = 0;
+  const segs = entries.map(([name, c], i) => {
+    const len = c / total * C;
+    const s = `<circle cx="60" cy="60" r="40" fill="none" stroke="${PALETTE[i % PALETTE.length]}" stroke-width="22" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-acc}" transform="rotate(-90 60 60)"/>`;
+    acc += len;
+    return s;
+  }).join("");
+  const legend = entries.map(([name, c], i) => `<div><span class="dot" style="background:${PALETTE[i % PALETTE.length]}"></span><span style="flex:1">${h(name)}</span><b>${c}</b><span class="sub">${Math.round(c / total * 100)}%</span></div>`).join("");
+  return `<div class="donut"><svg viewBox="0 0 120 120">${segs}<text class="cv" x="60" y="60" style="font-size:18px;font-weight:700">${total}</text><text class="ct" x="60" y="74">건</text></svg><div class="lg">${legend}</div></div>`;
+}
+function renderCharts(){
+  const dc = {}, ac = {};
+  logs.forEach(l => {
+    const d = deptFor(l.name); dc[d] = (dc[d] || 0) + 1;
+    if (l.appr) ac[l.appr] = (ac[l.appr] || 0) + 1;
+  });
+  const sortE = o => Object.entries(o).sort((a, b) => b[1] - a[1]);
+  $("chartBox").innerHTML = `<div class="cgrid"><div><div class="dh" style="margin-top:0">과별 비율</div>${donut(sortE(dc), "아직 기록이 없어요.")}</div>`
+    + `<div><div class="dh" style="margin-top:0">수술 방식별 비율</div>${donut(sortE(ac), "수술 방식을 기록하면 여기에 나와요.")}</div></div>`;
+}
+
+// 수술별 수술 방식 횟수 태그 (기록이 있는 방식만 표시)
+function apprTags(name){
+  const c = {};
+  logs.forEach(l => { if (l.name === name && l.appr) c[l.appr] = (c[l.appr] || 0) + 1; });
+  return ["로봇", "복강경", "개복", "기타"].filter(a => c[a]).map(a => `<span class="tag">${a} ${c[a]}</span>`).join("");
+}
+
+$("subToggle").onclick = () => { subOpen = !subOpen; renderSubs(); };
+
+// 4) 저장 버튼
+$("date").value = new Date().toISOString().slice(0,10);
+$("save").onclick = () => {
+  const name = $("name").value.trim();
+  if (!name) { alert("먼저 '분과/집도의' 탭의 '내 수술 목록'에 수술명을 추가해 주세요"); return; }
+  const before = levelOf(logs.reduce((a,l)=>a+l.xp,0));
+  const s = { id: Date.now(), date: $("date").value, name, role: $("role").value,
+    min: 0, diff: +$("diff").value, self: +$("self").value, memo: $("memo").value, doc: $("doc").value, appr: $("appr").value };
+  s.xp = calcXP(s, !logs.some(l => l.name === name));
+  logs.push(s); store(logs);
+  const after = levelOf(logs.reduce((a,l)=>a+l.xp,0));
+  $("memo").value = "";
+  const t = $("toast"); t.textContent = after > before ? `🎉 레벨 업! LV ${after}` : `+${s.xp} XP 획득!`;
+  t.style.display = "block"; setTimeout(() => t.style.display = "none", 2000);
+  render();
+};
+$("list").onclick = async e => {
+  if (e.target.dataset.id && await ask("이 기록을 삭제할까요?")) {
+    logs = logs.filter(l => l.id != e.target.dataset.id); store(logs); render();
+  }
+};
+render();
+</script>
+</body>
+</html>
