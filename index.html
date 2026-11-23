@@ -169,6 +169,7 @@ button{background:var(--main);color:#fff;border:0;font-weight:700;margin-top:14p
   <div id="backupBox">
     <p class="sub" style="margin:0">🔒 백업 파일에는 내 기록이 모두 들어 있어요. 안전한 곳에만 보관해 주세요.</p>
     <p class="sub" id="bkInfo"></p>
+    <p class="sub" id="offInfo"></p>
     <div class="row"><button id="bkSave">백업 파일 저장</button><button id="bkCopy">백업 내용 복사</button></div>
     <label>복원: 백업 파일 선택</label>
     <input type="file" id="bkFile" accept=".json,application/json">
@@ -915,6 +916,23 @@ async function saveBackupFallback(){
     markBackup(); say("백업 파일을 저장했어요");
   }catch(e){ say("파일 저장이 안 돼요. '백업 내용 복사'를 이용해 주세요"); }
 }
+
+// 오프라인 사용 준비 상태 표시 (설정 탭)
+(async function offlineInfo(){
+  const el = $("offInfo");
+  if (window.claude || !("serviceWorker" in navigator) || !/^https?:$/.test(location.protocol)) {
+    el.textContent = "📴 오프라인 사용: 이 화면에서는 쓸 수 없어요 (GitHub에 올린 앱에서 가능해요)";
+    return;
+  }
+  try{
+    const reg = await navigator.serviceWorker.getRegistration();
+    let n = 0;
+    for (const k of await caches.keys()) { n += (await (await caches.open(k)).keys()).length; }
+    el.textContent = (reg && reg.active && n >= 2)
+      ? `📴 오프라인 사용: 준비됐어요 ✅ (파일 ${n}개 저장됨)`
+      : "📴 오프라인 사용: 아직 준비 중이에요. 인터넷이 연결된 상태에서 앱을 한 번 더 열어 주세요";
+  }catch(e){ el.textContent = "📴 오프라인 사용: 확인할 수 없어요"; }
+})();
 
 // 4) 저장 버튼
 $("date").value = new Date().toISOString().slice(0,10);
