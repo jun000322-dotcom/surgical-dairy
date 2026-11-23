@@ -3,6 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="생존일기">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#4f46e5">
 <title>수술실 생존일기</title>
 <style>
 :root{--bg:#f4f6fb;--card:#fff;--text:#1d2433;--sub:#6b7488;--main:#4f46e5;--line:#e3e7f0;--ok:#16a34a;
@@ -754,7 +762,7 @@ function markBackup(){ try{ localStorage.setItem("surgeryLastBackup", new Date()
 $("bkSave").onclick = async () => {
   let dl = null;
   try{ dl = window.claude && await window.claude.use("downloads"); }catch(e){}
-  if (!dl) { say("이 화면에서는 파일 저장을 쓸 수 없어요. '백업 내용 복사'를 이용해 주세요"); return; }
+  if (!dl) { await saveBackupFallback(); return; }
   try{
     await dl.save({ filename: `수술실생존일기-백업-${stamp()}.json`, data: makeBackup() });
     markBackup(); say("백업 파일을 저장했어요");
@@ -889,6 +897,25 @@ function apprTags(name){
 
 $("subToggle").onclick = () => { subOpen = !subOpen; renderSubs(); };
 
+// 일반 브라우저/홈 화면 앱용 백업 저장: 공유 시트(파일에 저장) → 다운로드 링크 순서로 시도
+async function saveBackupFallback(){
+  const name = `수술실생존일기-백업-${stamp()}.json`, text = makeBackup();
+  try{
+    const file = new File([text], name, { type: "application/json" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: name });
+      markBackup(); say("백업 파일을 저장했어요"); return;
+    }
+  }catch(e){ if (e && e.name === "AbortError") return; }
+  try{
+    const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    markBackup(); say("백업 파일을 저장했어요");
+  }catch(e){ say("파일 저장이 안 돼요. '백업 내용 복사'를 이용해 주세요"); }
+}
+
 // 4) 저장 버튼
 $("date").value = new Date().toISOString().slice(0,10);
 $("save").onclick = () => {
@@ -911,6 +938,11 @@ $("list").onclick = async e => {
   }
 };
 render();
+
+// 오프라인 사용: 서비스 워커 등록 (GitHub Pages 같은 https 주소에서만)
+if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
+  window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });
+}
 </script>
 </body>
 </html>
