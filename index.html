@@ -66,6 +66,13 @@ button{background:var(--main);color:#fff;border:0;font-weight:700;margin-top:14p
 .pref>div{flex:1}
 .pt{font-weight:700;font-size:12px;color:var(--main);margin-bottom:2px}
 .pb{white-space:pre-wrap;word-break:break-word}
+.rrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.rname{font-size:14px;font-weight:700}
+.rsub{font-size:12px;color:var(--sub);margin-top:2px}
+.rday{font-size:15px;font-weight:700;text-align:right;flex:none}
+.rbadge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;margin-top:2px}
+.rday.ok{color:#16a34a}.rday.check{color:#d97706}.rday.review{color:#ef4444}
+.rbadge.ok{background:rgba(22,163,74,.14)}.rbadge.check{background:rgba(217,119,6,.15)}.rbadge.review{background:rgba(239,68,68,.14)}
 .ct{fill:var(--sub);font-size:9px;text-anchor:middle}
 .cv{fill:var(--text);font-size:10px;text-anchor:middle}
 .donut{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
@@ -160,8 +167,7 @@ button{background:var(--main);color:#fff;border:0;font-weight:700;margin-top:14p
   <button id="save">기록하고 XP 얻기</button>
 </div>
 
-<div class="card"><h2>💬 나의 수술 피드백</h2><ul id="fb" style="padding-left:18px;margin:0"></ul></div>
-<div class="card"><h2>📈 통계 차트</h2><div id="chartBox"></div></div>
+<div class="card"><h2>🕒 최근 경험</h2><div id="recentBox"></div></div>
 
 <div class="card"><h2>📚 수술별 대시보드</h2><div id="list"></div></div>
 <div class="card">
@@ -307,7 +313,7 @@ function render(){
   renderSubs();
   renderDocs();
   fillAppr();
-  $("fb").innerHTML = feedback().map(t => `<li>${t}</li>`).join("");
+  
   const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   $("list").innerHTML = logs.slice().reverse().map(l => `
     <div class="item"><button class="del" data-id="${l.id}">삭제</button><button class="ed" data-eid="${l.id}">수정</button>
@@ -315,7 +321,7 @@ function render(){
     <span class="tag">${l.date}</span><span class="tag">${deptFor(l.name)}${subFor(l.name) ? " · " + esc(subFor(l.name)) : ""}</span><span class="tag">${l.role}</span>${l.doc ? `<span class="tag">집도의 ${esc(l.doc)}</span>` : ""}${l.appr ? `<span class="tag">${l.appr}</span>` : ""}<span class="tag">난이도 ${l.diff}</span><span class="tag">+${l.xp}XP</span>
     ${l.memo ? `<div class="sub">${esc(l.memo)}</div>` : ""}</div>`).join("") || '<p class="sub">아직 기록이 없어요.</p>';
   renderDash();
-  renderCharts();
+  renderRecent();
 }
 
 // 수술 목록 그리기 + 추가/삭제
@@ -560,7 +566,7 @@ $("docList").addEventListener("click", e => {
 const TABS = [["main", "🏠 홈"], ["stat", "📊 통계"], ["dash", "📚 수술별"], ["sub", "🏷️분과/🩺집도의"], ["set", "⚙️ 설정"]];
 document.querySelectorAll("main > .card").forEach(c => {
   if (c.classList.contains("hero")) return;
-  c.dataset.tab = c.contains($("list")) ? "dash" : c.contains($("backupBox")) ? "set" : (c.contains($("subList")) || c.contains($("typeList"))) ? "sub" : c.contains($("docList")) ? "sub" : (c.classList.contains("stats") || c.contains($("fb")) || c.contains($("chartBox")) ) ? "stat" : "main";
+  c.dataset.tab = c.contains($("list")) ? "dash" : c.contains($("backupBox")) ? "set" : (c.contains($("subList")) || c.contains($("typeList"))) ? "sub" : c.contains($("docList")) ? "sub" : (c.classList.contains("stats") || c.contains($("recentBox"))) ? "stat" : "main";
 });
 const tabBar = document.createElement("div");
 tabBar.className = "tabs";
@@ -933,6 +939,44 @@ async function saveBackupFallback(){
       : "📴 오프라인 사용: 아직 준비 중이에요. 인터넷이 연결된 상태에서 앱을 한 번 더 열어 주세요";
   }catch(e){ el.textContent = "📴 오프라인 사용: 확인할 수 없어요"; }
 })();
+
+// 최근 경험: 수술별 마지막 수행일(소독·순회 각각)과 복습 필요 상태
+const RECENT_OK = 30, RECENT_WARN = 90;
+let recentFilter = "all";
+function renderRecent(){
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const daysSince = ds => Math.max(0, Math.round((today - new Date(ds + "T00:00:00")) / 86400000));
+  const map = {};
+  logs.forEach(l => {
+    if (!l.date) return;
+    const m = map[l.name] = map[l.name] || { n: 0, last: "", scrub: "", circ: "" };
+    m.n++;
+    if (l.date > m.last) m.last = l.date;
+    if (l.role === "소독간호사" && l.date > m.scrub) m.scrub = l.date;
+    if (l.role === "순회간호사" && l.date > m.circ) m.circ = l.date;
+  });
+  const rows = Object.entries(map).map(([name, m]) => {
+    const d = daysSince(m.last);
+    return { name, m, d, st: d <= RECENT_OK ? "ok" : d <= RECENT_WARN ? "check" : "review" };
+  }).sort((a, b) => b.d - a.d);
+  const cnt = k => rows.filter(r => r.st === k).length;
+  const lab = { ok: "최근", check: "점검", review: "복습 필요" };
+  const chips = [["all", `전체 ${rows.length}`], ["review", `복습 필요 ${cnt("review")}`], ["check", `점검 ${cnt("check")}`]]
+    .map(([k, t]) => `<button class="srt${recentFilter === k ? " on" : ""}" data-r="${k}">${t}</button>`).join("");
+  const roleTxt = (label, ds) => ds ? `${label} ${daysSince(ds)}일 전` : `${label} 기록 없음`;
+  const list = rows.filter(r => recentFilter === "all" || r.st === recentFilter).map(r =>
+    `<div class="rrow"><div style="min-width:0"><div class="rname">${h(r.name)}</div><div class="rsub">총 ${r.m.n}회 · ${roleTxt("소독", r.m.scrub)} · ${roleTxt("순회", r.m.circ)}</div></div>`
+    + `<div class="rday ${r.st}">${r.d}일 전<div><span class="rbadge ${r.st}">${lab[r.st]}</span></div></div></div>`).join("");
+  $("recentBox").innerHTML = rows.length
+    ? `<div style="margin-bottom:4px">${chips}</div>` + (list || '<p class="sub">해당하는 수술이 없어요.</p>')
+      + `<div class="sub" style="border-top:1px solid var(--line);padding-top:8px">최근 0~${RECENT_OK}일 · 점검 ${RECENT_OK + 1}~${RECENT_WARN}일 · 복습 필요 ${RECENT_WARN + 1}일 이상</div>`
+    : '<p class="sub">수술을 기록하면 마지막 수행일이 여기에 나와요.</p>';
+}
+$("recentBox").addEventListener("click", e => {
+  const b = e.target.closest(".srt");
+  if (b) { recentFilter = b.dataset.r; renderRecent(); }
+});
 
 // 4) 저장 버튼
 $("date").value = new Date().toISOString().slice(0,10);
