@@ -1003,7 +1003,30 @@ render();
 
 // 오프라인 사용: 서비스 워커 등록 (GitHub Pages 같은 https 주소에서만)
 if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-  window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });
+  // 새 버전(sw.js의 CACHE 이름이 바뀐 것)이 설치되면 화면을 한 번 새로고침해서 바로 보여 주기
+  //    단, 뭔가 입력하던 중이면 지우지 않도록 화면 아래에 '눌러서 새로고침' 안내만 띄우기
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloaded = false, typing = false;
+  document.addEventListener("input", () => { typing = true; }, true);
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController || reloaded) return;
+    if (!typing) { reloaded = true; location.reload(); return; }
+    if (document.getElementById("updateBar")) return;
+    const bar = document.createElement("button");
+    bar.id = "updateBar";
+    bar.textContent = "🔄 새 버전이 있어요. 입력을 마친 뒤 눌러서 새로고침";
+    bar.style.cssText = "position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:9999;padding:12px;border:0;border-radius:12px;background:#333;color:#fff;font-size:15px;box-shadow:0 4px 14px rgba(0,0,0,.25)";
+    bar.onclick = () => { reloaded = true; location.reload(); };
+    document.body.appendChild(bar);
+  });
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js", { updateViaCache: "none" })
+      .then(reg => {
+        // 앱을 켜 둔 채 다시 화면으로 돌아왔을 때도 새 버전이 있는지 확인
+        document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") reg.update().catch(() => {}); });
+      })
+      .catch(() => {});
+  });
 }
 </script>
 </body>
