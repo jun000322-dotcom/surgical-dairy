@@ -75,6 +75,15 @@ button{background:var(--main);color:#fff;border:0;font-weight:700;margin-top:14p
 .rbadge.ok{background:rgba(22,163,74,.14)}.rbadge.check{background:rgba(217,119,6,.15)}.rbadge.review{background:rgba(239,68,68,.14)}
 .pref .ed{float:none;flex:none;margin:0}
 .dh{font-size:13px;font-weight:700;margin:12px 0 2px;color:var(--main)}
+.srow{padding:10px 0;border-top:1px solid var(--line)}
+.srow.tap{cursor:pointer}
+.shead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sbadge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;flex:none}
+.sbadge.l1{background:var(--line);color:var(--sub)}
+.sbadge.l2{background:rgba(217,119,6,.15);color:#d97706}
+.sbadge.l3{background:rgba(22,163,74,.14);color:#16a34a}
+.skids{margin:6px 0 0 6px;padding-left:10px;border-left:2px solid var(--line)}
+.skids .srow{border-top:0;padding:6px 0}
 [hidden]{display:none!important}
 .tabs{display:flex;gap:6px;margin-bottom:12px}
 .tabs>*{flex:1}
@@ -156,6 +165,7 @@ button{background:var(--main);color:#fff;border:0;font-weight:700;margin-top:14p
 </div>
 
 <div class="card"><h2>🕒 최근 경험</h2><div id="recentBox"></div></div>
+<div class="card"><h2>🎯 숙련도</h2><div id="skillBox"></div></div>
 
 <div class="card"><h2>📚 수술별 대시보드</h2><div id="list"></div></div>
 <div class="card">
@@ -285,6 +295,7 @@ function render(){
     ${l.memo ? `<div class="sub">${esc(l.memo)}</div>` : ""}</div>`).join("") || '<p class="sub">아직 기록이 없어요.</p>';
   renderDash();
   renderRecent();
+  renderSkill();
 }
 
 // 수술 목록 그리기 + 추가/삭제
@@ -529,7 +540,7 @@ $("docList").addEventListener("click", e => {
 const TABS = [["main", "🏠 홈"], ["stat", "📊 통계"], ["dash", "📚 수술별"], ["sub", "🏷️분과/🩺집도의"], ["set", "⚙️ 설정"]];
 document.querySelectorAll("main > .card").forEach(c => {
   if (c.classList.contains("hero")) return;
-  c.dataset.tab = c.contains($("list")) ? "dash" : c.contains($("backupBox")) ? "set" : (c.contains($("subList")) || c.contains($("typeList"))) ? "sub" : c.contains($("docList")) ? "sub" : (c.classList.contains("stats") || c.contains($("recentBox"))) ? "stat" : "main";
+  c.dataset.tab = c.contains($("list")) ? "dash" : c.contains($("backupBox")) ? "set" : (c.contains($("subList")) || c.contains($("typeList"))) ? "sub" : c.contains($("docList")) ? "sub" : (c.classList.contains("stats") || c.contains($("recentBox")) || c.contains($("skillBox"))) ? "stat" : "main";
 });
 const tabBar = document.createElement("div");
 tabBar.className = "tabs";
@@ -912,6 +923,73 @@ function renderRecent(){
 $("recentBox").addEventListener("click", e => {
   const b = e.target.closest(".srt");
   if (b) { recentFilter = b.dataset.r; renderRecent(); }
+});
+
+// 숙련도: 수술별 / 집도의별 단계. 기준 숫자는 STAGE 한 곳에 모아 둠 (나중에 설정에서 바꿀 수 있게)
+const STAGE = { grow: 3, expert: 10, expertAvg: 4, lowAvg: 3, recentN: 3 };
+const STAGE_NAMES = ["", "입문", "성장", "숙련"];
+let skillMode = "name", skillOpen = null;
+// 기록 묶음 하나의 단계를 계산 (지금은 횟수 + 최근 만족도만 사용)
+function stageOf(arr){
+  const n = arr.length;
+  const recent = arr.slice().sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : b.id - a.id).slice(0, STAGE.recentN);
+  const avg = recent.reduce((a, l) => a + (+l.self || 0), 0) / recent.length;
+  const lv = (n < STAGE.grow || avg < STAGE.lowAvg) ? 1 : (n >= STAGE.expert && avg >= STAGE.expertAvg) ? 3 : 2;
+  const all = arr.reduce((a, l) => a + (+l.self || 0), 0) / n;
+  return { n, lv, avg, all, k: recent.length };
+}
+function stageHint(r){
+  if (r.lv === 3) return "숙련 단계예요 🎉";
+  const need = [];
+  const target = r.lv === 1 ? STAGE.grow : STAGE.expert, minAvg = r.lv === 1 ? STAGE.lowAvg : STAGE.expertAvg;
+  if (r.n < target) need.push(`${target - r.n}회 더`);
+  if (r.avg < minAvg) need.push(`최근 ${STAGE.recentN}건 평균 ${minAvg}점 이상`);
+  return `${STAGE_NAMES[r.lv + 1]}까지 ` + need.join(" · ");
+}
+function groupBy(list, keyFn){
+  const g = {};
+  list.forEach(l => { const k = keyFn(l); if (k) (g[k] = g[k] || []).push(l); });
+  return g;
+}
+function renderSkill(){
+  const modes = [["name", "수술별"], ["doc", "집도의별"]];
+  const tabs = modes.map(([k, t]) => `<button class="srt${skillMode === k ? " on" : ""}" data-sm="${k}">${t}</button>`).join("");
+  const badge = r => `<span class="sbadge l${r.lv}">${STAGE_NAMES[r.lv]}</span>`;
+  const byCount = (a, b) => b[1].length - a[1].length || (a[0] < b[0] ? -1 : 1);
+  let body = "";
+  if (skillMode === "name") {
+    body = Object.entries(groupBy(logs, l => l.name)).sort(byCount).map(([name, arr]) => {
+      const r = stageOf(arr);
+      const pct = r.lv === 3 ? 100 : Math.min(r.n / (r.lv === 1 ? STAGE.grow : STAGE.expert), 1) * 100;
+      return `<div class="srow"><div class="shead"><div class="rname">${h(name)}</div>${badge(r)}</div>`
+        + `<div class="bar"><i style="width:${pct}%"></i></div>`
+        + `<div class="rsub">총 ${r.n}회 · 최근 ${r.k}건 만족도 평균 ${r.avg.toFixed(1)}</div><div class="rsub">${stageHint(r)}</div></div>`;
+    }).join("");
+  } else {
+    body = Object.entries(groupBy(logs, l => l.doc)).sort(byCount).map(([doc, arr]) => {
+      const r = stageOf(arr), open = skillOpen === doc;
+      let kids = "";
+      if (open) {
+        kids = `<div class="skids">` + Object.entries(groupBy(arr, l => l.name)).sort(byCount).map(([name, a]) => {
+          const x = stageOf(a);
+          return `<div class="srow"><div class="shead"><div class="rname">${h(name)}</div>${badge(x)}</div><div class="rsub">${x.n}회 · 최근 ${x.k}건 만족도 평균 ${x.avg.toFixed(1)}</div></div>`;
+        }).join("") + `</div>`;
+      }
+      return `<div class="srow tap" data-doc="${h(doc)}"><div class="shead"><div class="rname">${open ? "▾" : "▸"} 🩺 ${h(doc)}</div>${badge(r)}</div>`
+        + `<div class="rsub">${r.n}회 · 평균 만족도 ${r.all.toFixed(1)}</div>${kids}</div>`;
+    }).join("");
+    if (body) body += `<p class="sub" style="margin:8px 0 0">집도의를 누르면 그 집도의와 한 수술별 단계가 보여요. 집도의를 정하지 않은 기록은 여기 나오지 않아요.</p>`;
+  }
+  const rule = `입문 1~${STAGE.grow - 1}회 또는 최근 ${STAGE.recentN}건 평균 ${STAGE.lowAvg}점 미만 · 성장 ${STAGE.grow}~${STAGE.expert - 1}회 · 숙련 ${STAGE.expert}회 이상 + 평균 ${STAGE.expertAvg}점 이상`;
+  $("skillBox").innerHTML = logs.length
+    ? `<div style="margin-bottom:4px">${tabs}</div>` + (body || '<p class="sub">해당하는 기록이 없어요.</p>')
+      + `<div class="sub" style="border-top:1px solid var(--line);padding-top:8px;margin-top:8px">내 만족도(1~5) 기준 · ${rule}</div>`
+    : '<p class="sub">수술을 기록하면 숙련도가 여기에 나와요.</p>';
+}
+$("skillBox").addEventListener("click", e => {
+  const m = e.target.closest("[data-sm]"), d = e.target.closest("[data-doc]");
+  if (m) { skillMode = m.dataset.sm; renderSkill(); }
+  else if (d) { skillOpen = skillOpen === d.dataset.doc ? null : d.dataset.doc; renderSkill(); }
 });
 
 // 4) 저장 버튼
