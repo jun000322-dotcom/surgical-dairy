@@ -73,18 +73,6 @@ button{background:var(--main);color:#fff;border:0;font-weight:700;margin-top:14p
 .rbadge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;margin-top:2px}
 .rday.ok{color:#16a34a}.rday.check{color:#d97706}.rday.review{color:#ef4444}
 .rbadge.ok{background:rgba(22,163,74,.14)}.rbadge.check{background:rgba(217,119,6,.15)}.rbadge.review{background:rgba(239,68,68,.14)}
-.ct{fill:var(--sub);font-size:9px;text-anchor:middle}
-.cv{fill:var(--text);font-size:10px;text-anchor:middle}
-.donut{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
-.donut svg{width:120px;height:120px;flex:none}
-.lg{flex:1;min-width:130px;font-size:13px}
-.lg>div{display:flex;gap:6px;align-items:center;margin:3px 0}
-.dot{width:10px;height:10px;border-radius:50%;flex:none}
-.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.cgrid>div{min-width:0}
-.cgrid .donut{flex-direction:column;align-items:stretch;gap:8px}
-.cgrid .donut svg{width:100%;max-width:110px;height:auto;margin:0 auto}
-.cgrid .lg{min-width:0;font-size:12px}
 .pref .ed{float:none;flex:none;margin:0}
 .dh{font-size:13px;font-weight:700;margin:12px 0 2px;color:var(--main)}
 [hidden]{display:none!important}
@@ -271,31 +259,6 @@ function streak(){
   if (!days.has(d.toISOString().slice(0,10))) d.setDate(d.getDate() - 1);
   while (days.has(d.toISOString().slice(0,10))) { n++; d.setDate(d.getDate() - 1); }
   return n;
-}
-function feedback(){
-  if (logs.length < 3) return ["기록이 3건 이상 쌓이면 맞춤 피드백이 나와요 🌱"];
-  const out = [], avg = k => logs.reduce((a,l)=>a+l[k],0) / logs.length;
-  const names = {}; logs.forEach(l => names[l.name] = (names[l.name]||0) + 1);
-  const top = Object.entries(names).sort((a,b)=>b[1]-a[1])[0];
-  out.push(`가장 많이 들어간 수술은 <b>${top[0]}</b> (${top[1]}회)예요.`);
-  const scrub = logs.filter(l => l.role === "소독간호사").length;
-  out.push(`역할 비율: 소독 ${scrub}건 · 순회 ${logs.length - scrub}건`);
-  const dc = {}; logs.forEach(l => { const d = deptFor(l.name); dc[d] = (dc[d] || 0) + 1; });
-  out.push("과별 기록: " + Object.entries(dc).sort((a, b) => b[1] - a[1]).map(([d, c]) => `${d} ${c}건`).join(" · "));
-  const sc = {}; logs.forEach(l => { const s = subFor(l.name); if (s) { const k = deptFor(l.name) + " " + s; sc[k] = (sc[k] || 0) + 1; } });
-  if (Object.keys(sc).length) out.push("분과별 기록: " + Object.entries(sc).sort((a, b) => b[1] - a[1]).map(([k, c]) => `${k} ${c}건`).join(" · "));
-  const dcount = {}; logs.forEach(l => { if (l.doc) dcount[l.doc] = (dcount[l.doc] || 0) + 1; });
-  const topDoc = Object.entries(dcount).sort((a, b) => b[1] - a[1])[0];
-  if (topDoc) out.push(`가장 많이 함께한 집도의는 <b>${h(topDoc[0])}</b> (${topDoc[1]}회)예요.`);
-  const ac = {}; logs.forEach(l => { if (l.appr) ac[l.appr] = (ac[l.appr] || 0) + 1; });
-  const at = Object.values(ac).reduce((a, b) => a + b, 0);
-  if (at) out.push("수술 방식: " + Object.entries(ac).sort((a, b) => b[1] - a[1]).map(([k, c]) => `${k} ${c}건(${Math.round(c / at * 100)}%)`).join(" · "));
-  out.push(`평균 난이도 ${avg("diff").toFixed(1)} · 평균 만족도 ${avg("self").toFixed(1)}`);
-  if (avg("self") < avg("diff") - 0.5) out.push("난이도에 비해 만족도가 낮아요. 어려운 수술 전 준비 체크리스트를 만들어 보면 어떨까요?");
-  else if (avg("self") >= 4) out.push("만족도가 높아요! 잘 된 점을 메모로 남기면 나만의 노하우가 돼요 ✨");
-  const memos = logs.filter(l => l.memo && l.memo.trim()).length;
-  if (memos / logs.length < 0.3) out.push("메모를 더 남기면 보너스 XP와 더 정확한 피드백을 받을 수 있어요.");
-  return out;
 }
 function render(){
   const xp = logs.reduce((a,l)=>a+l.xp,0), lv = levelOf(xp);
@@ -867,33 +830,6 @@ function openNewSurg(){
   };
 }
 $("newSurg").onclick = openNewSurg;
-
-// 통계 차트: 월별 막대 + 과별/수술 방식별 도넛 (외부 라이브러리 없이 SVG로 직접 그림)
-const PALETTE = ["#4f46e5", "#16a34a", "#f59e0b", "#ef4444", "#06b6d4", "#a855f7", "#ec4899", "#84cc16", "#64748b", "#f97316"];
-function donut(entries, emptyMsg){
-  const total = entries.reduce((a, e) => a + e[1], 0);
-  if (!total) return `<p class="sub">${emptyMsg}</p>`;
-  const C = 2 * Math.PI * 40;
-  let acc = 0;
-  const segs = entries.map(([name, c], i) => {
-    const len = c / total * C;
-    const s = `<circle cx="60" cy="60" r="40" fill="none" stroke="${PALETTE[i % PALETTE.length]}" stroke-width="22" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-acc}" transform="rotate(-90 60 60)"/>`;
-    acc += len;
-    return s;
-  }).join("");
-  const legend = entries.map(([name, c], i) => `<div><span class="dot" style="background:${PALETTE[i % PALETTE.length]}"></span><span style="flex:1">${h(name)}</span><b>${c}</b><span class="sub">${Math.round(c / total * 100)}%</span></div>`).join("");
-  return `<div class="donut"><svg viewBox="0 0 120 120">${segs}<text class="cv" x="60" y="60" style="font-size:18px;font-weight:700">${total}</text><text class="ct" x="60" y="74">건</text></svg><div class="lg">${legend}</div></div>`;
-}
-function renderCharts(){
-  const dc = {}, ac = {};
-  logs.forEach(l => {
-    const d = deptFor(l.name); dc[d] = (dc[d] || 0) + 1;
-    if (l.appr) ac[l.appr] = (ac[l.appr] || 0) + 1;
-  });
-  const sortE = o => Object.entries(o).sort((a, b) => b[1] - a[1]);
-  $("chartBox").innerHTML = `<div class="cgrid"><div><div class="dh" style="margin-top:0">과별 비율</div>${donut(sortE(dc), "아직 기록이 없어요.")}</div>`
-    + `<div><div class="dh" style="margin-top:0">수술 방식별 비율</div>${donut(sortE(ac), "수술 방식을 기록하면 여기에 나와요.")}</div></div>`;
-}
 
 // 수술별 수술 방식 횟수 태그 (기록이 있는 방식만 표시)
 function apprTags(name){
