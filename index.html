@@ -169,6 +169,18 @@ button{background:var(--main);color:#fff;border:0;font-weight:700;margin-top:14p
 
 <div class="card"><h2>📚 수술별 대시보드</h2><div id="list"></div></div>
 <div class="card">
+  <h2>⚙️ 기준 설정</h2>
+  <div id="setBox">
+    <p class="sub" style="margin:0">통계 탭 "최근 경험"에서 수술을 며칠 전까지 "최근", "점검"으로 볼지 정해요.</p>
+    <div class="row">
+      <div><label>최근 (일 이내)</label><input type="number" id="setOk" min="1" max="365" inputmode="numeric"></div>
+      <div><label>점검 (일 이내)</label><input type="number" id="setWarn" min="2" max="365" inputmode="numeric"></div>
+    </div>
+    <p class="sub" id="setHelp" style="margin:8px 0 0"></p>
+    <div class="row"><button id="setReset" style="background:var(--sub)">기본값으로</button><button id="setSave">저장</button></div>
+  </div>
+</div>
+<div class="card">
   <h2>💾 백업 / 복원</h2>
   <div id="backupBox">
     <p class="sub" style="margin:0">🔒 백업 파일에는 내 기록이 모두 들어 있어요. 안전한 곳에만 보관해 주세요.</p>
@@ -540,7 +552,7 @@ $("docList").addEventListener("click", e => {
 const TABS = [["main", "🏠 홈"], ["stat", "📊 통계"], ["dash", "📚 수술별"], ["sub", "🏷️분과/🩺집도의"], ["set", "⚙️ 설정"]];
 document.querySelectorAll("main > .card").forEach(c => {
   if (c.classList.contains("hero")) return;
-  c.dataset.tab = c.contains($("list")) ? "dash" : c.contains($("backupBox")) ? "set" : (c.contains($("subList")) || c.contains($("typeList"))) ? "sub" : c.contains($("docList")) ? "sub" : (c.classList.contains("stats") || c.contains($("recentBox")) || c.contains($("skillBox"))) ? "stat" : "main";
+  c.dataset.tab = c.contains($("list")) ? "dash" : (c.contains($("backupBox")) || c.contains($("setBox"))) ? "set" : (c.contains($("subList")) || c.contains($("typeList"))) ? "sub" : c.contains($("docList")) ? "sub" : (c.classList.contains("stats") || c.contains($("recentBox")) || c.contains($("skillBox"))) ? "stat" : "main";
 });
 const tabBar = document.createElement("div");
 tabBar.className = "tabs";
@@ -728,7 +740,7 @@ $("who").onclick = () => openProfile(false);
 if (!profile) openProfile(true);
 
 // 백업 / 복원: 앱의 모든 저장 데이터를 JSON 한 덩어리로 내보내고 되살림
-const BKEYS = ["surgeryLog", "surgeryTypes", "surgeryCustomDepts", "surgeryDepts", "surgerySubs", "surgerySubOf", "surgerySurgeons", "surgerySort", "surgeryProfile", "surgeryPrefNotes"];
+const BKEYS = ["surgeryLog", "surgeryTypes", "surgeryCustomDepts", "surgeryDepts", "surgerySubs", "surgerySubOf", "surgerySurgeons", "surgerySort", "surgeryProfile", "surgeryPrefNotes", "surgerySettings"];
 function makeBackup(){
   const data = {};
   BKEYS.forEach(k => { try{ const v = localStorage.getItem(k); if (v !== null) data[k] = v; }catch(e){} });
@@ -888,7 +900,33 @@ async function saveBackupFallback(){
 })();
 
 // 최근 경험: 수술별 마지막 수행일(소독·순회 각각)과 복습 필요 상태
-const RECENT_OK = 30, RECENT_WARN = 90;
+// 설정: 최근 경험 기준 일수 (저장된 값이 없거나 이상하면 기본값 30일 / 90일)
+const SETKEY = "surgerySettings", DEF_OK = 30, DEF_WARN = 90;
+let RECENT_OK = DEF_OK, RECENT_WARN = DEF_WARN;
+function validDays(ok, warn){ return Number.isInteger(ok) && Number.isInteger(warn) && ok >= 1 && ok < warn && warn <= 365; }
+(function loadSettings(){
+  try{
+    const o = JSON.parse(localStorage.getItem(SETKEY));
+    if (o && validDays(o.recentOk, o.recentWarn)) { RECENT_OK = o.recentOk; RECENT_WARN = o.recentWarn; }
+  }catch(e){}
+})();
+function showSettings(){
+  $("setOk").value = RECENT_OK; $("setWarn").value = RECENT_WARN;
+  $("setHelp").textContent = `지금: 최근 0~${RECENT_OK}일 · 점검 ${RECENT_OK + 1}~${RECENT_WARN}일 · 복습 필요 ${RECENT_WARN + 1}일 이상 (기본 ${DEF_OK}일 / ${DEF_WARN}일)`;
+}
+$("setSave").onclick = () => {
+  const ok = Number($("setOk").value), warn = Number($("setWarn").value);
+  if (!validDays(ok, warn)) { say("1 이상의 정수로, 점검 일수는 최근 일수보다 크고 365 이하여야 해요"); return; }
+  RECENT_OK = ok; RECENT_WARN = warn;
+  try{ localStorage.setItem(SETKEY, JSON.stringify({ recentOk: ok, recentWarn: warn })); }catch(e){ say("저장이 안 돼서 이번에만 적용돼요"); }
+  showSettings(); renderRecent(); say("기준을 저장했어요");
+};
+$("setReset").onclick = () => {
+  RECENT_OK = DEF_OK; RECENT_WARN = DEF_WARN;
+  try{ localStorage.removeItem(SETKEY); }catch(e){}
+  showSettings(); renderRecent(); say("기본값으로 돌렸어요");
+};
+showSettings();
 let recentFilter = "all";
 function renderRecent(){
   const today = new Date();
