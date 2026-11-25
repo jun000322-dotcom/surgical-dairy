@@ -3,7 +3,7 @@
 // ⚠️ index.html 등 앱 파일을 고쳐서 올릴 때마다 아래 버전을 그날 날짜로 바꿔 주세요.
 //    (같은 날 두 번 이상 올리면 뒤에 -2, -3 …을 붙이기. 예: "survival-diary-2026-11-25-3")
 //    이 줄이 바뀌어야 설치된 앱이 새 버전을 알아채고 바로 바꿔 끼웁니다.
-const CACHE = "survival-diary-2026-11-25-6";
+const CACHE = "survival-diary-2026-11-25-7";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
