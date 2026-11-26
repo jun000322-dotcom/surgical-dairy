@@ -166,6 +166,10 @@ button{background:var(--main);color:#fff;border:0;font-weight:700;margin-top:14p
     <div><label>집도의</label><select id="doc"></select></div>
     <div><label>내 역할</label><select id="role"><option>소독간호사</option><option>순회간호사</option></select></div>
   </div>
+  <details class="fold" id="prevFold" open hidden>
+    <summary><span class="ft">📌 이 수술 노트</span><span class="fv" id="prevSum"></span></summary>
+    <div id="prevBody"></div>
+  </details>
   <div class="row">
     <div><label>난이도 (1~5)</label><select id="diff"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></div>
     <div><label>내 만족도 (1~5)</label><select id="self"><option>1</option><option>2</option><option>3</option><option selected>4</option><option>5</option></select></div>
@@ -340,7 +344,21 @@ function render(){
   renderDash();
   renderRecent();
   renderSkill();
+  renderPreview();
 }
+
+// 기록 폼 미리보기: 수술명 + 집도의를 고르면 그 조합의 "이 수술 노트"를 보여 줌
+function renderPreview(){
+  const n = $("name").value, d = $("doc").value, box = $("prevFold");
+  if (!n || !d) { box.hidden = true; return; }
+  const key = n + "|" + d, note = prefNotes[key] || "";
+  $("prevSum").textContent = d;
+  $("prevBody").innerHTML = `<div class="pref"><div><div class="pb">${note.trim() ? h(note) : '<span class="sub">아직 노트가 없어요</span>'}</div></div><button class="ed" data-pk="${h(key)}">${note.trim() ? "수정" : "노트 적기"}</button></div>`;
+  box.hidden = false;
+}
+$("name").addEventListener("change", renderPreview);
+$("doc").addEventListener("change", renderPreview);
+$("prevBody").addEventListener("click", e => { const k = e.target.dataset.pk; if (k) openNote(k); });
 
 // 수술 목록 그리기 + 추가/삭제
 function renderTypes(){
@@ -881,6 +899,7 @@ function openNewSurg(){
     box.style.display = "none";
     render();
     $("name").value = n;
+    renderPreview();
     say(exists ? "이미 목록에 있어서 선택했어요" : "새 수술을 추가했어요");
   };
 }
