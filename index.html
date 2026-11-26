@@ -25,7 +25,8 @@ h1{font-size:20px;margin:6px 0 12px}h2{font-size:15px;margin:0 0 10px}
 .hero{display:flex;gap:12px;align-items:center}
 .lv{width:64px;height:64px;border-radius:50%;background:var(--main);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;flex:none}
 .lv small{font-size:10px;font-weight:400}.lv b{font-size:22px;line-height:1}
-.bar{height:10px;background:var(--line);border-radius:6px;overflow:hidden;margin:6px 0 2px}
+.bar{position:relative;height:10px;background:var(--line);border-radius:6px;overflow:hidden;margin:6px 0 2px}
+.bar .tick{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--card);opacity:.9}
 .bar i{display:block;height:100%;background:var(--main);width:0;transition:width .5s}
 .sub{color:var(--sub);font-size:12px}
 label{display:block;font-size:13px;margin:10px 0 4px}
@@ -1038,10 +1039,11 @@ function renderSkill(){
   if (skillMode === "name") {
     body = Object.entries(groupBy(logs, l => l.name)).sort(byCount).map(([name, arr]) => {
       const r = stageOf(arr);
-      const pct = r.lv === 3 ? 100 : Math.min(r.n / (r.lv === 1 ? STAGE.grow : STAGE.expert), 1) * 100;
+      // 바는 단계와 상관없이 실제 횟수만 반영: 숙련 기준 횟수 대비 몇 회 했는지 (눈금 = 성장 시작 횟수)
+      const pct = Math.min(r.n / STAGE.expert, 1) * 100, growPct = STAGE.grow / STAGE.expert * 100;
       return `<div class="srow"><div class="shead"><div class="rname">${h(name)}</div>${badge(r)}</div>`
-        + `<div class="bar"><i style="width:${pct}%"></i></div>`
-        + `<div class="rsub">총 ${r.n}회 · 최근 ${r.k}건 만족도 평균 ${r.avg.toFixed(1)}</div><div class="rsub">${stageHint(r)}</div></div>`;
+        + `<div class="bar"><i style="width:${pct}%"></i><b class="tick" style="left:${growPct}%"></b></div>`
+        + `<div class="rsub">총 ${r.n}회 / 숙련 기준 ${STAGE.expert}회 · 최근 ${r.k}건 만족도 평균 ${r.avg.toFixed(1)}</div><div class="rsub">${stageHint(r)}</div></div>`;
     }).join("");
   } else {
     body = Object.entries(groupBy(logs, l => l.doc)).sort(byCount).map(([doc, arr]) => {
