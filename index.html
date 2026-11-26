@@ -21,6 +21,8 @@ html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;line-height:1.5}
 main{max-width:520px;margin:0 auto;padding:14px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.nag{border-color:var(--main);font-size:14px;font-weight:700}
+.nag button{margin-top:10px}
 h1{font-size:20px;margin:6px 0 12px}h2{font-size:15px;margin:0 0 10px}
 .hero{display:flex;gap:12px;align-items:center}
 .lv{width:64px;height:64px;border-radius:50%;background:var(--main);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;flex:none}
@@ -152,6 +154,11 @@ button{background:var(--main);color:#fff;border:0;font-weight:700;margin-top:14p
   <div class="row"><select id="docDept"></select><select id="docSub"></select></div>
   <div class="row" style="margin-top:6px"><input id="newDoc" placeholder="집도의 이름"><button id="addDoc">추가</button></div>
   <div id="docList" style="margin-top:8px"></div>
+</div>
+
+<div class="card nag" id="bkNag" style="display:none">
+  <div id="bkNagText"></div>
+  <div class="row"><button id="bkNagLater" style="background:var(--sub)">나중에</button><button id="bkNagGo">지금 백업</button></div>
 </div>
 
 <div class="card">
@@ -345,6 +352,7 @@ function render(){
   renderRecent();
   renderSkill();
   renderPreview();
+  renderNag();
 }
 
 // 기록 폼 미리보기: 수술명 + 집도의를 고르면 그 조합의 "이 수술 노트"를 보여 줌
@@ -801,7 +809,39 @@ function showBackupInfo(){
   let t = ""; try{ t = localStorage.getItem("surgeryLastBackup") || ""; }catch(e){}
   $("bkInfo").textContent = t ? "마지막 백업: " + t : "아직 백업한 적이 없어요.";
 }
-function markBackup(){ try{ localStorage.setItem("surgeryLastBackup", new Date().toLocaleDateString("ko-KR")); }catch(e){} showBackupInfo(); }
+function markBackup(){
+  try{ localStorage.setItem("surgeryLastBackup", new Date().toLocaleDateString("ko-KR")); localStorage.setItem("surgeryBackupAt", String(Date.now())); }catch(e){}
+  showBackupInfo(); renderNag();
+}
+
+// 백업 알림: 마지막 백업 후 새 기록 10건 이상, 또는 30일 지났고 새 기록 1건 이상이면 홈에 배너
+// 백업한 적이 없으면 기록 5건부터. "나중에"는 3일 숨김. 기록 id = 저장 시각이라 그 뒤 기록을 셈
+const DAY = 86400000;
+function lastBackupTime(){
+  try{
+    const at = +localStorage.getItem("surgeryBackupAt");
+    if (at) return at;
+    const m = (localStorage.getItem("surgeryLastBackup") || "").match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+    if (m) return new Date(+m[1], m[2] - 1, +m[3]).getTime();
+  }catch(e){}
+  return 0;
+}
+function renderNag(){
+  const at = lastBackupTime(), now = Date.now();
+  const fresh = logs.filter(l => +l.id > at).length;
+  let snooze = 0; try{ snooze = +localStorage.getItem("surgeryBackupSnooze") || 0; }catch(e){}
+  let msg = "";
+  if (!at) { if (logs.length >= 5) msg = `💾 기록이 ${logs.length}건 쌓였어요. 폰을 바꾸거나 브라우저 데이터가 지워지면 사라지니 백업해 두세요.`; }
+  else if (fresh >= 10) msg = `💾 마지막 백업 후 기록 ${fresh}건이 쌓였어요.`;
+  else if (fresh >= 1 && now - at >= 30 * DAY) msg = `💾 마지막 백업한 지 ${Math.floor((now - at) / DAY)}일이 지났어요. (새 기록 ${fresh}건)`;
+  $("bkNagText").textContent = msg;
+  $("bkNag").style.display = (msg && now >= snooze) ? "" : "none";
+}
+$("bkNagLater").onclick = () => {
+  try{ localStorage.setItem("surgeryBackupSnooze", String(Date.now() + 3 * DAY)); }catch(e){}
+  renderNag();
+};
+$("bkNagGo").onclick = () => { showTab("set"); $("backupBox").scrollIntoView({ block: "start" }); };
 $("bkSave").onclick = async () => {
   let dl = null;
   try{ dl = window.claude && await window.claude.use("downloads"); }catch(e){}
@@ -825,6 +865,7 @@ function restoreFrom(text){
   ask("지금 앱에 있는 모든 기록을 이 백업 내용으로 바꿔요. 계속할까요?", "복원").then(ok => {
     if (!ok) return;
     BKEYS.forEach(k => { try{ if (typeof obj.data[k] === "string") localStorage.setItem(k, obj.data[k]); else localStorage.removeItem(k); }catch(e){} });
+    markBackup();
     say("복원했어요. 화면을 새로 불러와요 (안 되면 앱을 다시 열어 주세요)");
     setTimeout(() => { try{ location.reload(); }catch(e){} }, 1200);
   });
