@@ -30,6 +30,9 @@ h1{font-size:20px;margin:6px 0 12px}h2{font-size:15px;margin:0 0 10px}
 .sub{color:var(--sub);font-size:12px}
 label{display:block;font-size:13px;margin:10px 0 4px}
 input,select,textarea,button{width:100%;font:inherit;padding:9px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text)}
+/* iOS Safari: 날짜 칸이 자체 최소 너비 때문에 width:100%를 무시하고 카드 밖으로 나가는 문제 */
+input[type=date]{-webkit-appearance:none;appearance:none;display:block;min-width:0;max-width:100%;min-height:calc(1.2em + 20px);text-align:left}
+input[type=date]::-webkit-date-and-time-value{text-align:left}
 button{background:var(--main);color:#fff;border:0;font-weight:700;margin-top:14px}
 .row{display:flex;gap:8px}.row>*{flex:1;min-width:0}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
