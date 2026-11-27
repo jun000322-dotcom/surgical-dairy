@@ -112,6 +112,11 @@ button{background:var(--main);color:#fff;border:0;font-weight:700;margin-top:14p
 #editbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:30;overflow:auto;padding:calc(14px + env(safe-area-inset-top,0px)) 14px calc(14px + env(safe-area-inset-bottom,0px))}
 #editbox .panel,#onboard .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;max-width:520px;margin:10px auto}
 .ed{margin-right:6px}
+.tlist{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.tlist .tag{font-size:13px;padding:3px 10px;margin:0;border-radius:10px;background:var(--card);border:1px solid var(--line)}
+.titem{display:flex;align-items:center;gap:10px;padding:10px 2px;border-top:1px solid var(--line);font-size:15px}
+.titem .tn{flex:1;word-break:break-word}
+#toolAdd{margin-top:0;width:auto;flex:none;padding:9px 16px}
 #toast{z-index:50;position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ok);color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;display:none}
 </style>
 </head>
@@ -368,6 +373,53 @@ $("name").addEventListener("change", renderPreview);
 $("doc").addEventListener("change", renderPreview);
 $("prevBody").addEventListener("click", e => { const k = e.target.dataset.pk; if (k) openNote(k); });
 
+// 집도의 선호 도구: {"수술명|집도의": [도구, ...]} (백업 대상, 키는 prefNotes와 같은 방식)
+let tools = loadObj("surgeryTools");
+function storeTools(){ try{ localStorage.setItem("surgeryTools", JSON.stringify(tools)); }catch(e){} }
+function toolsOf(k){ return Array.isArray(tools[k]) ? tools[k] : []; }
+// 도구 편집 창: 수술별 대시보드의 "🧰 선호 도구" 카드에서 열림. 바꾸면 바로 저장
+let toolKey = null;
+function drawTools(){
+  const key = toolKey, cut = key.lastIndexOf("|"), sName = key.slice(0, cut), dName = key.slice(cut + 1), tl = toolsOf(key);
+  // 추천: 같은 수술의 다른 집도의 → 같은 집도의의 다른 수술 → 그 밖 순서
+  const score = {};
+  Object.keys(tools).forEach(k => {
+    if (k === key) return;
+    const w = k.startsWith(sName + "|") ? 3 : k.endsWith("|" + dName) ? 2 : 1;
+    toolsOf(k).forEach(t => { if (!tl.includes(t)) score[t] = (score[t] || 0) + w; });
+  });
+  const sug = Object.keys(score).sort((a, b) => score[b] - score[a]).slice(0, 12);
+  $("editbox").innerHTML = `<div class="panel" id="toolPanel"><h2>🧰 선호 도구</h2>
+    <div class="sub">${h(dName)} · ${h(sName)}</div>
+    <div style="margin-top:6px">${tl.map(t => `<div class="titem"><span class="tn">${h(t)}</span><span class="x" data-tx="${h(t)}">✕</span></div>`).join("") || '<p class="sub" style="margin:4px 0">아직 등록한 도구가 없어요.</p>'}</div>
+    <div class="row" style="margin-top:8px"><input id="toolIn" placeholder="예: 메젠바움, 3-0 바이크릴 (쉼표로 여러 개)" enterkeyhint="done"><button id="toolAdd">추가</button></div>
+    ${sug.length ? `<div class="sub" style="margin:8px 0 4px">다른 목록에서 바로 추가</div><div>${sug.map(t => `<button class="sbtn" data-ts="${h(t)}">+ ${h(t)}</button>`).join("")}</div>` : ""}
+    <button id="toolDone">완료</button></div>`;
+}
+function addTools(text){
+  const cur = toolsOf(toolKey).slice();
+  text.split(/[,，\n]/).map(t => t.trim()).filter(Boolean).forEach(t => { if (!cur.includes(t)) cur.push(t); });
+  tools[toolKey] = cur; storeTools(); drawTools(); render();
+  setTimeout(() => $("toolIn") && $("toolIn").focus(), 0);
+}
+function openTools(key){ toolKey = key; drawTools(); $("editbox").style.display = "block"; }
+$("editbox").addEventListener("click", e => {
+  if (!$("toolPanel")) return;
+  const t = e.target.closest("[data-tx],[data-ts],#toolAdd,#toolDone");
+  if (!t) return;
+  if (t.dataset.tx !== undefined) {
+    tools[toolKey] = toolsOf(toolKey).filter(x => x !== t.dataset.tx);
+    if (!tools[toolKey].length) delete tools[toolKey];
+    storeTools(); drawTools(); render();
+  }
+  else if (t.dataset.ts !== undefined) addTools(t.dataset.ts);
+  else if (t.id === "toolAdd") { const v = $("toolIn").value; if (v.trim()) addTools(v); }
+  else if (t.id === "toolDone") $("editbox").style.display = "none";
+});
+$("editbox").addEventListener("keydown", e => {
+  if (e.target.id === "toolIn" && e.key === "Enter" && !e.isComposing && e.target.value.trim()) { e.preventDefault(); addTools(e.target.value); }
+});
+
 // 수술 목록 그리기 + 추가/삭제
 function renderTypes(){
   const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -589,6 +641,8 @@ $("typeList").addEventListener("click", async e => {
   if (subOf[old] !== undefined) { subOf[name] = subOf[old]; delete subOf[old]; storeSubs(); }
   Object.keys(prefNotes).forEach(k => { if (k.startsWith(old + "|")) { prefNotes[name + k.slice(old.length)] = prefNotes[k]; delete prefNotes[k]; } });
   storePrefs();
+  Object.keys(tools).forEach(k => { if (k.startsWith(old + "|")) { tools[name + k.slice(old.length)] = tools[k]; delete tools[k]; } });
+  storeTools();
   render();
 });
 
@@ -701,7 +755,8 @@ function openEdit(id){
 }
 $("list").addEventListener("click", e => {
   const b = e.target.closest(".ed");
-  if (b && b.dataset.pk !== undefined) openNote(b.dataset.pk);
+  if (b && b.dataset.tk !== undefined) openTools(b.dataset.tk);
+  else if (b && b.dataset.pk !== undefined) openNote(b.dataset.pk);
   else if (b) openMemo(b.dataset.mid);
   const hd = e.target.closest(".dhead");
   if (hd) { const k = hd.dataset.k; if (openCards.has(k)) openCards.delete(k); else openCards.add(k); render(); return; }
@@ -728,8 +783,10 @@ function renderDash(){
     const memos = arr.map(l => `<div class="memo"><div class="mt">${l.appr ? `<div><span class="tag">${h(l.appr)}</span></div>` : ""}<div>${l.memo && l.memo.trim() ? h(l.memo) : '<span class="sub">메모 없음</span>'}</div></div><button class="ed" data-mid="${l.id}">수정</button></div>`).join("");
     const key = dashName + "|" + k, open = openCards.has(key);
     const note = prefNotes[key] || "";
+    const tl = toolsOf(key);
+    const toolCard = k ? `<div class="pref"><div><div class="pt">🧰 선호 도구</div>${tl.length ? `<div class="tlist">${tl.map(t => `<span class="tag">${h(t)}</span>`).join("")}</div>` : '<div class="sub">아직 등록한 도구가 없어요</div>'}</div><button class="ed" data-tk="${h(key)}">${tl.length ? "수정" : "추가"}</button></div>` : "";
     const prefBox = k ? `<div class="pref"><div><div class="pt">📌 이 수술 노트</div><div class="pb">${note.trim() ? h(note) : '<span class="sub">아직 노트가 없어요. 수정을 눌러 적어 보세요</span>'}</div></div><button class="ed" data-pk="${h(key)}">수정</button></div>` : "";
-    return `<div class="dcard"><div class="dhead" data-k="${h(key)}"><div class="dtitle">${open ? "▾" : "▸"} ${k ? "🩺 " + h(k) : "집도의 미지정"} <span class="tag">${arr.length}회</span></div><div>${apTags}</div></div>${prefBox}${open ? memos : ""}</div>`;
+    return `<div class="dcard"><div class="dhead" data-k="${h(key)}"><div class="dtitle">${open ? "▾" : "▸"} ${k ? "🩺 " + h(k) : "집도의 미지정"} <span class="tag">${arr.length}회</span></div><div>${apTags}</div></div>${toolCard}${prefBox}${open ? memos : ""}</div>`;
   }).join("");
   $("list").innerHTML = `<div class="ngrid">${btns}</div><div class="dh" style="margin-top:6px">${h(dashName)} · 총 ${mine.length}회</div>` + (cards || '<p class="sub">아직 이 수술의 기록이 없어요.</p>');
 }
@@ -798,7 +855,7 @@ $("who").onclick = () => openProfile(false);
 if (!profile) openProfile(true);
 
 // 백업 / 복원: 앱의 모든 저장 데이터를 JSON 한 덩어리로 내보내고 되살림
-const BKEYS = ["surgeryLog", "surgeryTypes", "surgeryCustomDepts", "surgeryDepts", "surgerySubs", "surgerySubOf", "surgerySurgeons", "surgerySort", "surgeryProfile", "surgeryPrefNotes", "surgerySettings"];
+const BKEYS = ["surgeryTools", "surgeryLog", "surgeryTypes", "surgeryCustomDepts", "surgeryDepts", "surgerySubs", "surgerySubOf", "surgerySurgeons", "surgerySort", "surgeryProfile", "surgeryPrefNotes", "surgerySettings"];
 function makeBackup(){
   const data = {};
   BKEYS.forEach(k => { try{ const v = localStorage.getItem(k); if (v !== null) data[k] = v; }catch(e){} });
