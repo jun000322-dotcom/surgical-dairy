@@ -112,8 +112,6 @@ button{background:var(--main);color:#fff;border:0;font-weight:700;margin-top:14p
 #editbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:30;overflow:auto;padding:calc(14px + env(safe-area-inset-top,0px)) 14px calc(14px + env(safe-area-inset-bottom,0px))}
 #editbox .panel,#onboard .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;max-width:520px;margin:10px auto}
 .ed{margin-right:6px}
-.tlist{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
-.tlist .tag{font-size:13px;padding:3px 10px;margin:0;border-radius:10px;background:var(--card);border:1px solid var(--line)}
 .titem{display:flex;align-items:center;gap:10px;padding:10px 2px;border-top:1px solid var(--line);font-size:15px}
 .titem .tn{flex:1;word-break:break-word}
 #toolAdd{margin-top:0;width:auto;flex:none;padding:9px 16px}
@@ -784,7 +782,7 @@ function renderDash(){
     const key = dashName + "|" + k, open = openCards.has(key);
     const note = prefNotes[key] || "";
     const tl = toolsOf(key);
-    const toolCard = k ? `<div class="pref"><div><div class="pt">🧰 선호 도구</div>${tl.length ? `<div class="tlist">${tl.map(t => `<span class="tag">${h(t)}</span>`).join("")}</div>` : '<div class="sub">아직 등록한 도구가 없어요</div>'}</div><button class="ed" data-tk="${h(key)}">${tl.length ? "수정" : "추가"}</button></div>` : "";
+    const toolCard = k ? `<div class="pref"><div><div class="pt">🧰 선호 도구</div><div class="pb">${tl.length ? tl.map(t => "· " + h(t)).join("\n") : '<span class="sub">아직 도구가 없어요. 수정을 눌러 적어 보세요</span>'}</div></div><button class="ed" data-tk="${h(key)}">수정</button></div>` : "";
     const prefBox = k ? `<div class="pref"><div><div class="pt">📌 이 수술 노트</div><div class="pb">${note.trim() ? h(note) : '<span class="sub">아직 노트가 없어요. 수정을 눌러 적어 보세요</span>'}</div></div><button class="ed" data-pk="${h(key)}">수정</button></div>` : "";
     return `<div class="dcard"><div class="dhead" data-k="${h(key)}"><div class="dtitle">${open ? "▾" : "▸"} ${k ? "🩺 " + h(k) : "집도의 미지정"} <span class="tag">${arr.length}회</span></div><div>${apTags}</div></div>${toolCard}${prefBox}${open ? memos : ""}</div>`;
   }).join("");
